@@ -1,14 +1,19 @@
 export layout_fdp
 
+const C = 1
+const K = 1
 dist(xj,xi,yj,yi) = sqrt((xj-xi)^2 + (yj-yi)^2)
 mag(a,b) = a^2 + b^2
 f_attr(xi,xj,yi,yj) = (dist(xi,xj,yi,yj)^2) / K
-f_attr(xi,xj,yi,yj) = -C*(K^2) / dist(xi,xj,yi,yj)
+f_repln(xi,xj,yi,yj) = -C*(K^2) / dist(xi,xj,yi,yj)
 
 function layout_fdp(g, tol)
   converged = false
   step = 1
   energy = typemax(Float64)
+  N = size(g,1)
+  x = 2*rand(N) .- 1
+  y = 2*rand(N) .- 1
   while !converged
     x0 = x
     y0 = y
@@ -18,6 +23,7 @@ function layout_fdp(g, tol)
       fx = 0.0
       fy = 0.0
       for j in 1:N
+        i == j && continue
         if g[i,j] == 1
           fx = fx + f_attr(x[i],x[j],y[i],y[j]) * ((x[j] - x[i]) / dist(x[j],x[i],y[j],y[i]))
           fy = fy + f_attr(x[i],x[j],y[i],y[j]) * ((y[j] - y[i]) / dist(x[j],x[i],y[j],y[i]))
@@ -26,9 +32,9 @@ function layout_fdp(g, tol)
           fy = fy + f_repln(x[i],x[j],y[i],y[j]) * ((y[j] - y[i]) / dist(x[j],x[i],y[j],y[i]))
         end
       end
-        x[i] = x[i] + step * (fx / sqrt(mag(fx,fy)))
-        y[i] = y[i] + step * (fy / sqrt(mag(fx,fy)))
-        energy = energy + mag(fx,fy)
+      x[i] = x[i] + step * (fx / sqrt(mag(fx,fy)))
+      y[i] = y[i] + step * (fy / sqrt(mag(fx,fy)))
+      energy = energy + mag(fx,fy)
     end
     step = update_step(step, energy, energy0)
     converged = dist_tolerance(x,x0,y,y0,tol)
@@ -36,7 +42,7 @@ function layout_fdp(g, tol)
   return x, y
 end
 
-function update_step(step, energy, energy0)
+function update_step(step, energy, energy0, progress=0)
   const t = 0.9
   if energy < energy0
     progress = progress + 1
@@ -45,6 +51,7 @@ function update_step(step, energy, energy0)
       step = step/t
     end
   else
+    @show "2"
     progress = 0
     step = t * step
   end

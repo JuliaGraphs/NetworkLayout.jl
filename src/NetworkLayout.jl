@@ -1,5 +1,5 @@
 module NetworkLayout
 
-# package code goes here
+include("sfdp.jl")
 
-end # module
+end
