@@ -26,13 +26,14 @@ f_repln(xi,xj,yi,yj,C,K) = -C*(K^2) / dist(xi,xj,yi,yj)
 function layout_fdp(g; tol=1, C=0.2, K=1)
   converged = false
   step = 1
+  progress = 0
   energy = typemax(Float64)
   N = size(g,1)
   x = 2*rand(N) .- 1
   y = 2*rand(N) .- 1
   while !converged
-    x0 = x
-    y0 = y
+    x0 = copy(x)
+    y0 = copy(y)
     energy0 = energy
     energy = 0
     for i in 1:N
@@ -54,13 +55,13 @@ function layout_fdp(g; tol=1, C=0.2, K=1)
       y[i] = y[i] + step * (fy / sqrt(mag(fx,fy)))
       energy = energy + mag(fx,fy)
     end
-    step = update_step(step, energy, energy0)
-    converged = dist_tolerance(x,x0,y,y0,tol)
+    step, progress = update_step(step, energy, energy0, progress)
+    converged = dist_tolerance(x,x0,y,y0,K,tol)
   end
   return x, y
 end
 
-function update_step(step, energy, energy0, progress=0)
+function update_step(step, energy, energy0, progress)
   # cooldown step
   const t = 0.9
   if energy < energy0
@@ -73,15 +74,16 @@ function update_step(step, energy, energy0, progress=0)
     progress = 0
     step = t * step
   end
+  return step, progress
 end
 
-function dist_tolerance(x,x0,y,y0,K)
+function dist_tolerance(x,x0,y,y0,K,tol)
   # check whether the layout is optimal
   xt = x-x0
   yt = y-y0
   const N = size(x,1)
   for i in 1:N
-    if sqrt(mag(xt[i],yt[i])) > K
+    if sqrt(mag(xt[i],yt[i])) >= K*tol
       return false
     end
   end
