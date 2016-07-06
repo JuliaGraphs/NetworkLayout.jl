@@ -23,60 +23,56 @@ f_repln(a,b,C,K) = -C*(K^2) / norm(a-b)
 immutable Layout{A, P, F}
   adj_matrix::A
   positions::P
-  forces::F
+  force::F
   tol
   C
   K
-  converged::Bool
-  step
-  energy
-  progress
 end
 
 function layout_fdp{T}(g::T, dim::Int, locs = (2*rand(Point{dim, Float64}, size(g,1)) .- 1); tol=1.0, C=0.2, K=1.0)
   N = size(g,1)
   P = eltype(locs)
-  forces = zeros(Vec{length(P), P}, N)
-  network = Layout(g,locs,forces,tol,C,K,false,1,typemax(Float64),0)
-  while !(network.converged)
-    layout_iterator!(network)
+  force = P(0)
+  network = Layout(g,locs,force,tol,C,K)
+  converged = false
+  step = 1
+  energy = typemax(Float64)
+  progress = 0
+  while !converged
+    converged,step,energy,progress = layout_iterator!(network,converged,step,energy,progress)
   end
   return network.positions
 end
 
-function layout_iterator!{A,P,F}(network::Layout{A,P,F})
+function layout_iterator!{A,P,F}(network::Layout{A,P,F},converged,step,energy,progress)
   g = network.adj_matrix
   N = size(g,1)
   locs = network.positions
-  forcetype = eltype(F)
-  positiontype = eltype(P)
+  force = network.force
   locs0 = copy(locs)
-  step = network.step
-  progress = network.progress
-  converged = network.converged
-  energy0 = network.energy
+  energy0 = energy
   energy = 0
   K = network.K
   C = network.C
   tol = network.tol
   for i in 1:N
-    force = forcetype(0)
+    force = F(0)
     for j in 1:N
       i == j && continue
       if g[i,j] == 1
         # Attractive forces for adjacent nodes
-        force = force + forcetype(f_attr(locs[i],locs[j],K) * ((locs[j] - locs[i]) / norm(locs[j] - locs[i])))
+        force = force + F(f_attr(locs[i],locs[j],K) * ((locs[j] - locs[i]) / norm(locs[j] - locs[i])))
       else
         # Repulsive forces
-        force = force + forcetype(f_repln(locs[i],locs[j],C,K) * ((locs[j] - locs[i]) / norm(locs[j] - locs[i])))
+        force = force + F(f_repln(locs[i],locs[j],C,K) * ((locs[j] - locs[i]) / norm(locs[j] - locs[i])))
       end
     end
-    locs[i] = locs[i] + positiontype(step * (force / norm(force)))
+    locs[i] = locs[i] + step * (force / norm(force))
     energy = energy + norm(force)^2
   end
-  network.energy = energy
   step, progress = update_step(step, energy, energy0, progress)
   converged = dist_tolerance(locs,locs0,K,tol)
+  return converged,step,energy,progress
 end
 
 function update_step(step, energy, energy0, progress)
