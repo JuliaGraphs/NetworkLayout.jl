@@ -1,5 +1,5 @@
 using GeometryTypes
-export layout_fdp, Layout
+export layout_fdp, layout_iterator!, Layout
 
 """
 Using the Spring-Electric model suggested by Yifan Hu
@@ -34,23 +34,21 @@ function layout_fdp{T}(g::T, dim::Int, locs = (2*rand(Point{dim, Float64}, size(
   P = eltype(locs)
   force = P(0)
   network = Layout(g,locs,force,tol,C,K)
-  converged = false
-  step = 1
-  energy = typemax(Float64)
-  progress = 0
-  while !converged
-    converged,step,energy,progress = layout_iterator!(network,converged,step,energy,progress)
+  next_index = (false,1,typemax(Float64),0)
+  while !(next_index[1])
+    network, next_index = next(network,next_index)
   end
   return network.positions
 end
 
-function Base.next(network::Layout, converged)
-  step = 1
-  progress = 0
-  energy = typemax(Float64)
-  converged, step, energy, progress = layout_iterator!(network,converged,step,energy,progress)
-  return network, converged
+Base.start(::Layout) = false,1,typemax(Float64),0
+
+function Base.next(network::Layout, next_index)
+  next_index = layout_iterator!(network,next_index[1],next_index[2],next_index[3],next_index[4])
+  return (network, next_index)
 end
+
+Base.done(::Layout, next_index) = next_index[1]
 
 function layout_iterator!{A,P,F}(network::Layout{A,P,F},converged,step,energy,progress)
   g = network.adj_matrix
@@ -80,7 +78,7 @@ function layout_iterator!{A,P,F}(network::Layout{A,P,F},converged,step,energy,pr
   end
   step, progress = update_step(step, energy, energy0, progress)
   converged = dist_tolerance(locs,locs0,K,tol)
-  return converged,step,energy,progress
+  return (converged,step,energy,progress)
 end
 
 function update_step(step, energy, energy0, progress)
