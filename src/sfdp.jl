@@ -1,5 +1,5 @@
 using GeometryTypes
-export layout_fdp
+export layout_fdp, Layout
 
 """
 Using the Spring-Electric model suggested by Yifan Hu
@@ -42,6 +42,14 @@ function layout_fdp{T}(g::T, dim::Int, locs = (2*rand(Point{dim, Float64}, size(
     converged,step,energy,progress = layout_iterator!(network,converged,step,energy,progress)
   end
   return network.positions
+end
+
+function Base.next(network::Layout, converged)
+  step = 1
+  progress = 0
+  energy = typemax(Float64)
+  converged, step, energy, progress = layout_iterator!(network,converged,step,energy,progress)
+  return network, converged
 end
 
 function layout_iterator!{A,P,F}(network::Layout{A,P,F},converged,step,energy,progress)
