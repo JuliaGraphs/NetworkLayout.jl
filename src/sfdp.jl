@@ -1,4 +1,5 @@
-export layout_fdp
+using GeometryTypes
+export layout_fdp, layout_iterator!, Layout
 
 """
 Using the Spring-Electric model suggested by Yifan Hu
@@ -14,51 +15,70 @@ Output :
   x, y   Co-ordinates for the nodes
 """
 
-# Function for calculating dist b/w vectors
-dist(xj,xi,yj,yi) = sqrt((xj-xi)^2 + (yj-yi)^2)
-# Function to calculate magnitude of the vector
-mag(a,b) = a^2 + b^2
 # Calculate Attractive force
-f_attr(xi,xj,yi,yj,K) = (dist(xi,xj,yi,yj)^2) / K
+f_attr(a,b,K) = (norm(a-b)^2) / K
 # Calculate Repulsive force
-f_repln(xi,xj,yi,yj,C,K) = -C*(K^2) / dist(xi,xj,yi,yj)
+f_repln(a,b,C,K) = -C*(K^2) / norm(a-b)
 
-function layout_fdp(g; tol=1, C=0.2, K=1)
-  converged = false
-  step = 1
-  progress = 0
-  energy = typemax(Float64)
+immutable Layout{A, P, F}
+  adj_matrix::A
+  positions::P
+  force::F
+  tol
+  C
+  K
+end
+
+function layout_fdp{T}(g::T, dim::Int, locs = (2*rand(Point{dim, Float64}, size(g,1)) .- 1); tol=1.0, C=0.2, K=1.0)
   N = size(g,1)
-  x = 2*rand(N) .- 1
-  y = 2*rand(N) .- 1
-  while !converged
-    x0 = copy(x)
-    y0 = copy(y)
-    energy0 = energy
-    energy = 0
-    for i in 1:N
-      fx = 0.0
-      fy = 0.0
-      for j in 1:N
-        i == j && continue
-        if g[i,j] == 1
-          # Attractive forces for adjacent nodes
-          fx = fx + f_attr(x[i],x[j],y[i],y[j],K) * ((x[j] - x[i]) / dist(x[j],x[i],y[j],y[i]))
-          fy = fy + f_attr(x[i],x[j],y[i],y[j],K) * ((y[j] - y[i]) / dist(x[j],x[i],y[j],y[i]))
-        else
-          # Repulsive forces
-          fx = fx + f_repln(x[i],x[j],y[i],y[j],C,K) * ((x[j] - x[i]) / dist(x[j],x[i],y[j],y[i]))
-          fy = fy + f_repln(x[i],x[j],y[i],y[j],C,K) * ((y[j] - y[i]) / dist(x[j],x[i],y[j],y[i]))
-        end
-      end
-      x[i] = x[i] + step * (fx / sqrt(mag(fx,fy)))
-      y[i] = y[i] + step * (fy / sqrt(mag(fx,fy)))
-      energy = energy + mag(fx,fy)
-    end
-    step, progress = update_step(step, energy, energy0, progress)
-    converged = dist_tolerance(x,x0,y,y0,K,tol)
+  P = eltype(locs)
+  force = P(0)
+  network = Layout(g,locs,force,tol,C,K)
+  next_index = (false,1,typemax(Float64),0)
+  while !(next_index[1])
+    network, next_index = next(network,next_index)
   end
-  return x, y
+  return network.positions
+end
+
+Base.start(::Layout) = false,1,typemax(Float64),0
+
+function Base.next(network::Layout, next_index)
+  next_index = layout_iterator!(network,next_index[1],next_index[2],next_index[3],next_index[4])
+  return (network, next_index)
+end
+
+Base.done(::Layout, next_index) = next_index[1]
+
+function layout_iterator!{A,P,F}(network::Layout{A,P,F},converged,step,energy,progress)
+  g = network.adj_matrix
+  N = size(g,1)
+  locs = network.positions
+  force = network.force
+  locs0 = copy(locs)
+  energy0 = energy
+  energy = 0
+  K = network.K
+  C = network.C
+  tol = network.tol
+  for i in 1:N
+    force = F(0)
+    for j in 1:N
+      i == j && continue
+      if g[i,j] == 1
+        # Attractive forces for adjacent nodes
+        force = force + F(f_attr(locs[i],locs[j],K) * ((locs[j] - locs[i]) / norm(locs[j] - locs[i])))
+      else
+        # Repulsive forces
+        force = force + F(f_repln(locs[i],locs[j],C,K) * ((locs[j] - locs[i]) / norm(locs[j] - locs[i])))
+      end
+    end
+    locs[i] = locs[i] + step * (force / norm(force))
+    energy = energy + norm(force)^2
+  end
+  step, progress = update_step(step, energy, energy0, progress)
+  converged = dist_tolerance(locs,locs0,K,tol)
+  return (converged,step,energy,progress)
 end
 
 function update_step(step, energy, energy0, progress)
@@ -77,13 +97,11 @@ function update_step(step, energy, energy0, progress)
   return step, progress
 end
 
-function dist_tolerance(x,x0,y,y0,K,tol)
+function dist_tolerance(locs,locs0,K,tol)
   # check whether the layout is optimal
-  xt = x-x0
-  yt = y-y0
-  const N = size(x,1)
+  const N = size(locs,1)
   for i in 1:N
-    if sqrt(mag(xt[i],yt[i])) >= K*tol
+    if norm(locs[i]-locs0[i]) >= K*tol
       return false
     end
   end
