@@ -30,4 +30,22 @@ using GeometryTypes
 
   end
 
+  @testset "Testing Buchheim Tree Drawing" begin
+
+    @testset "Test a Random tree" begin
+      adj_list = Vector{Int}[
+        [2,3,4],
+        [5,6],
+        [7],
+        [],
+        [],
+        [],
+        []
+      ]
+      x, y = layout_tree_buchheim(adj_list,distance=2.0)
+      @test eltype(x) == eltype(y) == Float64
+    end
+
+  end
+
 end

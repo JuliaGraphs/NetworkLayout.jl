@@ -26,7 +26,7 @@ immutable Tree
   distance
 end
 
-function typegen(tree)
+function typegen(tree,distance)
   mod = zeros(length(tree))
   thread = zeros(length(tree))
   prelim = zeros(length(tree))
@@ -36,15 +36,15 @@ function typegen(tree)
   nodes = copy(tree)
   x = rand(length(tree))
   y = rand(length(tree))
-  t = Tree(nodes,mod,thread,ancestor,prelim,shift,change,x,y,1.0)
+  t = Tree(nodes,mod,thread,ancestor,prelim,shift,change,x,y,distance)
   return t
 end
 
-function layout_tree_buchheim(t)
-  tree = typegen(t)
+function layout_tree_buchheim(t;distance=1.0)
+  tree = typegen(t,distance)
   first_walk(1,tree)
   second_walk(1,-tree.prelim[1],0,tree)
-  return tree.x,tree.y
+  return tree.x, tree.y
 end
 
 function parent(v,t)
