@@ -1,16 +1,26 @@
 export layout_tree_buchheim
 
-typealias list{T} Vector{Vector{T}}
+"""
+Using the algorithm proposed in the paper,
+"Improving Walker's Algorithm to Run in Linear Time"
+by Christoph Buchheim, Michael Junger, Sebastian Leipert
+(http://dirk.jivas.de/papers/buchheim02improving.pdf)
+
+Arguments
+tree    Adjacency List that represents the given tree
+
+Returns
+x,y     x and y co-ordinates of the layout
+"""
 
 immutable Tree
   nodes
   mod
   thread
   ancestor
-  prelim::Array{Float64}
+  prelim
   shift
   change
-  level
   x
   y
   distance
@@ -22,20 +32,19 @@ function typegen(tree)
   prelim = zeros(length(tree))
   shift = zeros(length(tree))
   change = zeros(length(tree))
-  level = zeros(length(tree))
   ancestor = [i for i in 1:length(tree)]
   nodes = copy(tree)
   x = rand(length(tree))
   y = rand(length(tree))
-  t = Tree(nodes,mod,thread,ancestor,prelim,shift,change,level,x,y,1.0)
+  t = Tree(nodes,mod,thread,ancestor,prelim,shift,change,x,y,1.0)
   return t
 end
 
 function layout_tree_buchheim(t)
   tree = typegen(t)
   first_walk(1,tree)
-  second_walk(1,-tree.prelim[1],tree)
-  return tree
+  second_walk(1,-tree.prelim[1],0,tree)
+  return tree.x,tree.y
 end
 
 function parent(v,t)
@@ -46,6 +55,7 @@ function parent(v,t)
       return i
     end
   end
+  return nothing
 end
 
 function first_walk(v,t)
@@ -53,22 +63,26 @@ function first_walk(v,t)
   mod = t.mod
   tree = t.nodes
   distance = t.distance
+  p = parent(v,t)
+  if p != nothing
+    index = find(x->(x==v),tree[p])[1]
+  else
+    index = 1
+  end
   if length(tree[v]) == 0
-    prelim[v] = 0
+    if v != tree[p][1]
+      prelim[v] = prelim[tree[p][index-1]] + distance
+    else
+      prelim[v] = 0
+    end
   else
     defaultAncestor = tree[v][1]
     for w in tree[v]
       first_walk(w,t)
-      apportion(w,defaultAncestor,t)
+      defaultAncestor = apportion(w,defaultAncestor,t)
     end
     execute_shifts(v,t)
     midpoint = (prelim[tree[v][1]] + prelim[tree[v][end]]) / 2
-    p = parent(v,t)
-    if p != nothing
-      index = find(x->(x==v),tree[p])[1]
-    else
-      index = 1
-    end
     if index > 1
       w = tree[p][index-1]
       prelim[v] = prelim[w] + distance
@@ -84,6 +98,7 @@ function apportion(v,defaultAncestor,t)
   ancestor = t.ancestor
   prelim = t.prelim
   mod = t.mod
+  thread = t.thread
   p = parent(v,t)
   distance = t.distance
   if p != nothing
@@ -108,7 +123,7 @@ function apportion(v,defaultAncestor,t)
       ancestor[v_out_right] = v
       shift = (prelim[v_in_left] + s_in_left) - (prelim[v_in_right] + s_in_right) + distance
       if shift > 0
-        move_subtree(find_ancestor(v_in_left,v,defaultAncestor),v,shift,t)
+        move_subtree(find_ancestor(v_in_left,v,defaultAncestor,t),v,shift,t)
         s_in_right += shift
         s_out_right += shift
       end
@@ -120,13 +135,21 @@ function apportion(v,defaultAncestor,t)
     if next_right(v_in_left,t)!=0 && next_right(v_out_right,t)==0
       thread[v_out_right] = next_right(v_in_left,t)
       mod[v_out_right] += s_in_left - s_out_right
-    end
-    if next_left(v_in_right,t)!=0 next_left(v_out_left,t)==0
-      thread[v_out_left] = next_left(v_in_right,t)
-      mod[v_out_left] += s_in_right - s_out_left
-      defaultAncestor = v
+    else
+      if next_left(v_in_right,t)!=0 next_left(v_out_left,t)==0
+        thread[v_out_left] = next_left(v_in_right,t)
+        mod[v_out_left] += s_in_right - s_out_left
+        defaultAncestor = v
+      end
     end
   end
+  return defaultAncestor
+end
+
+function number(v,t)
+  p = parent(v,t)
+  index = find(x->(x==v),t.nodes[p])[1]
+  return index
 end
 
 function move_subtree(w_left,w_right,shift,t)
@@ -135,35 +158,32 @@ function move_subtree(w_left,w_right,shift,t)
   tree = t.nodes
   shifttree = t.shift
   mod = t.mod
-  p_wl = parent(w_left,t)
-  p_wr = parent(w_right,t)
-  n_wl = find(x->(x==w_left),tree[p_wl])[1]
-  n_wr = find(x->(x==w_right),tree[p_wr])[1]
+  n_wl = number(w_left,t)
+  n_wr = number(w_right,t)
   subtrees = n_wr - n_wl
   change[w_right] += shift / subtrees
-  shiftree[w_right] += shift
+  shifttree[w_right] += shift
   change[w_left] += shift / subtrees
   prelim[w_right] += shift
   mod[w_right] += shift
 end
 
-function second_walk(v,m,t)
-  t = compute_depth(t)
+function second_walk(v,m,depth,t)
   prelim = t.prelim
   mod = t.mod
   x = t.x
   y = t.y
-  level = t.level
   x[v] = prelim[v] + m
-  y[v] = level[v]
+  y[v] = -depth
   for w in t.nodes[v]
-    second_walk(w,m+mod[v],t)
+    second_walk(w,m+mod[v],depth+1,t)
   end
 end
 
 function find_ancestor(w,v,defaultAncestor,tree)
-  if parent(w,t) == parent(v,t)
-    return tree.ancestor[w]
+  ancestor = tree.ancestor
+  if ancestor[w] in tree.nodes[parent(v,tree)]
+    return ancestor[w]
   else
     return defaultAncestor
   end
@@ -181,7 +201,7 @@ function execute_shifts(v,t)
     prelim[w] += shiftnode
     mod[w] += shiftnode
     change += change[w]
-    shiftnode = shiftnode + shift[w] + changenode
+    shiftnode += shift[w] + changenode
   end
 end
 
@@ -203,16 +223,4 @@ function next_right(v,t)
   else
     return thread[v]
   end
-end
-
-function compute_depth(t)
-  tree = t.nodes
-  level = t.level
-  N = length(tree)
-  for v in 1:N
-    for w in tree[v]
-      level[w] = level[v] + 1
-    end
-  end
-  return t
 end
