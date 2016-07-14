@@ -1,5 +1,5 @@
 # NetworkLayout.jl
-Graph and Tree Layout algorithms for graphs in pure Julia.
+Layout algorithms for graphs and trees in pure Julia.
 
 ## Algorithms
 
@@ -21,12 +21,12 @@ layout_fdp(adjacency_matrix,dimension,intial_position;tolerance,C,K)
 
 ##### returns
   `network` - co-ordinates of nodes in the layout
-  
+
 ##### iterator
 
 A user can move between iterations using a `Layout` object.
 
-  
+
 #### Example
 
 ```julia
@@ -36,3 +36,37 @@ g = WheelGraph(30)
 a = adjacency_matrix(g) # generates a sparse adjacency matrix
 network = layout_fdp(a,2,tol=0.1,C=1,K=1) # generate 2D layout
 ```
+
+### Buchheim Tree Drawing
+
+Buchheim Tree Drawing as explained in [Improving Walker's Algorithm to Run in Linear Time](http://dirk.jivas.de/papers/buchheim02improving.pdf) by Christoph Buchheim, Michael Junger and Sebastian Leipert.
+
+#### Usage
+
+```julia
+layout_tree_buchheim(adjacency_list,nodesize)
+```
+
+##### arguments
+ * `adjacency_list` - adjacency list that represents the tree
+ * `nodesize` - sizes of nodes (used to position the nodes)
+
+##### returns
+ * `x , y` - x and y co-ordinates of the layout
+
+#### Example
+
+```julia
+using NetworkLayout
+adj_list = Vector{Int}[   # adjacency list
+        [2,3,4],
+        [5,6],
+        [7],
+        [],
+        [],
+        [],
+        []
+      ]
+ nodesize = [1,2.3,1.2,2,3,1.4,0.8]
+ x, y = layout_tree_buchheim(adj_list,nodesize) # generating the layout for the tree
+ ```
