@@ -40,7 +40,7 @@ function typegen(tree,distance)
   return t
 end
 
-function layout_tree_buchheim(t;distance=1.0)
+function layout_tree_buchheim(t,distance=ones(length(t)))
   tree = typegen(t,distance)
   first_walk(1,tree)
   second_walk(1,-tree.prelim[1],0,tree)
@@ -71,7 +71,7 @@ function first_walk(v,t)
   end
   if length(tree[v]) == 0
     if v != tree[p][1]
-      prelim[v] = prelim[tree[p][index-1]] + distance
+      prelim[v] = prelim[tree[p][index-1]] + (distance[tree[p][index-1]]+1.0)
     else
       prelim[v] = 0
     end
@@ -85,7 +85,7 @@ function first_walk(v,t)
     midpoint = (prelim[tree[v][1]] + prelim[tree[v][end]]) / 2
     if index > 1
       w = tree[p][index-1]
-      prelim[v] = prelim[w] + distance
+      prelim[v] = prelim[w] + (distance[w]+1.0)
       mod[v] = prelim[v] - midpoint
     else
       prelim[v] = midpoint
@@ -121,7 +121,7 @@ function apportion(v,defaultAncestor,t)
       v_out_left = next_left(v_out_left,t)
       v_out_right = next_right(v_out_right,t)
       ancestor[v_out_right] = v
-      shift = (prelim[v_in_left] + s_in_left) - (prelim[v_in_right] + s_in_right) + distance
+      shift = (prelim[v_in_left] + s_in_left) - (prelim[v_in_right] + s_in_right) + (distance[v_in_left]+1.0)
       if shift > 0
         move_subtree(find_ancestor(v_in_left,v,defaultAncestor,t),v,shift,t)
         s_in_right += shift
@@ -173,10 +173,16 @@ function second_walk(v,m,depth,t)
   mod = t.mod
   x = t.x
   y = t.y
+  distance = t.distance
   x[v] = prelim[v] + m
   y[v] = -depth
+  if length(t.nodes[v])!=0
+    maxdist = maximum([distance[i] for i in t.nodes[v]])
+  else
+    maxdist = 0
+  end
   for w in t.nodes[v]
-    second_walk(w,m+mod[v],depth+1,t)
+    second_walk(w,m+mod[v],depth+1+maxdist,t)
   end
 end
 

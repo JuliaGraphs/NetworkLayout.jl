@@ -42,7 +42,8 @@ using GeometryTypes
         [],
         []
       ]
-      x, y = layout_tree_buchheim(adj_list,distance=2.0)
+      nodesize = [1,2,1.5,3,0.5,1,1]
+      x, y = layout_tree_buchheim(adj_list,nodesize)
       @test eltype(x) == eltype(y) == Float64
     end
 

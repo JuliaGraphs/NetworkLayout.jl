@@ -21,12 +21,12 @@ layout_fdp(adjacency_matrix,dimension,intial_position;tolerance,C,K)
 
 ##### returns
   `network` - co-ordinates of nodes in the layout
-  
+
 ##### iterator
 
 A user can move between iterations using a `Layout` object.
 
-  
+
 #### Example
 
 ```julia
@@ -44,15 +44,15 @@ Buchheim Tree Drawing as explained in [Improving Walker's Algorithm to Run in Li
 #### Usage
 
 ```julia
-layout_tree_buchheim(adjacency_list;distance)
+layout_tree_buchheim(adjacency_list,nodesize)
 ```
 
 ##### arguments
  * `adjacency_list` - adjacency list that represents the tree
- * `distance` - used to scale the drawing (kwarg)
+ * `nodesize` - sizes of nodes (used to position the nodes)
 
 ##### returns
- * `x , y` - x and y co-ordinates of the layout 
+ * `x , y` - x and y co-ordinates of the layout
 
 #### Example
 
@@ -67,5 +67,6 @@ adj_list = Vector{Int}[   # adjacency list
         [],
         []
       ]
- x, y = layout_tree_buchheim(adj_list,distance=1.0) # generating the layout for the tree
+ nodesize = [1,2.3,1.2,2,3,1.4,0.8]
+ x, y = layout_tree_buchheim(adj_list,nodesize) # generating the layout for the tree
  ```
