@@ -71,7 +71,7 @@ function first_walk(v,t)
   end
   if length(tree[v]) == 0
     if v != tree[p][1]
-      prelim[v] = prelim[tree[p][index-1]] + (distance[tree[p][index-1]]+1.0)
+      prelim[v] = prelim[tree[p][index-1]] + (distance[tree[p][index-1]])
     else
       prelim[v] = 0
     end
@@ -121,7 +121,7 @@ function apportion(v,defaultAncestor,t)
       v_out_left = next_left(v_out_left,t)
       v_out_right = next_right(v_out_right,t)
       ancestor[v_out_right] = v
-      shift = (prelim[v_in_left] + s_in_left) - (prelim[v_in_right] + s_in_right) + (distance[v_in_left]+1.0)
+      shift = (prelim[v_in_left] + s_in_left) - (prelim[v_in_right] + s_in_right) + (distance[v_in_left])
       if shift > 0
         move_subtree(find_ancestor(v_in_left,v,defaultAncestor,t),v,shift,t)
         s_in_right += shift
@@ -161,7 +161,7 @@ function move_subtree(w_left,w_right,shift,t)
   n_wl = number(w_left,t)
   n_wr = number(w_right,t)
   subtrees = n_wr - n_wl
-  change[w_right] += shift / subtrees
+  change[w_right] -= shift / subtrees
   shifttree[w_right] += shift
   change[w_left] += shift / subtrees
   prelim[w_right] += shift
@@ -206,7 +206,7 @@ function execute_shifts(v,t)
   for w in reverse(tree[v])
     prelim[w] += shiftnode
     mod[w] += shiftnode
-    change += change[w]
+    changenode += change[w]
     shiftnode += shift[w] + changenode
   end
 end
