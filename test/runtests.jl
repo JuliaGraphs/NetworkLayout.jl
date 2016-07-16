@@ -47,6 +47,23 @@ using GeometryTypes
       @test eltype(x) == eltype(y) == Float64
     end
 
+    @testset "Test a Binary tree" begin
+      g = BinaryTree(10)
+      n = Vector{Int32}[]
+      a = adjacency_matrix(g)
+      for i in 1:size(a,1)
+         p = Int32[]
+         for e in collect(edges(g))
+             if e[1] == i
+                 push!(p,e[2])
+             end
+         end
+         push!(n,p)
+      end
+      x, y = layout_tree_buchheim(n)
+      @test eltype(x) == eltype(y) == Float64
+    end
+
   end
 
 end
