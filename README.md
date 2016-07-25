@@ -1,6 +1,8 @@
 # NetworkLayout.jl
 Layout algorithms for graphs and trees in pure Julia.
 
+Linux, OSX : [![Build Status](https://travis-ci.org/JuliaGraphs/NetworkLayout.jl.svg?branch=master)](https://travis-ci.org/JuliaGraphs/NetworkLayout.jl)
+
 ## Algorithms
 
 ### Scalable Force Directed Placement
@@ -36,6 +38,21 @@ g = WheelGraph(30)
 a = adjacency_matrix(g) # generates a sparse adjacency matrix
 network = layout_fdp(a,2,tol=0.1,C=1,K=1) # generate 2D layout
 ```
+Using Iterator :
+
+```julia
+g = WheelGraph(30)
+a = adjacency_matrix(g)
+tol = 0.1
+C = 0.2
+K = 1
+network = Layout(g,locs,tol,C,K)
+state = start(network)
+while !done(network,state)
+  network, state = next(network,state)
+end
+return network.positions
+```
 
 ### Buchheim Tree Drawing
 
@@ -52,7 +69,7 @@ layout_tree_buchheim(adjacency_list,nodesize)
  * `nodesize` - sizes of nodes (used to position the nodes)
 
 ##### returns
- * `x , y` - x and y co-ordinates of the layout
+ * `locs` - co-ordinates of the layout
 
 #### Example
 
@@ -68,5 +85,5 @@ adj_list = Vector{Int}[   # adjacency list
         []
       ]
  nodesize = [1,2.3,1.2,2,3,1.4,0.8]
- x, y = layout_tree_buchheim(adj_list,nodesize) # generating the layout for the tree
+ locs = layout_tree_buchheim(adj_list,nodesize) # generating the layout for the tree
  ```

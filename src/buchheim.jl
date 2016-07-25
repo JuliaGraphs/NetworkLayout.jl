@@ -1,4 +1,8 @@
-export layout_tree_buchheim
+module Buchheim
+
+using GeometryTypes
+
+export layout
 
 """
 Using the algorithm proposed in the paper,
@@ -10,7 +14,7 @@ Arguments
 tree    Adjacency List that represents the given tree
 
 Returns
-x,y     x and y co-ordinates of the layout
+locs     co-ordinates of the layout
 """
 
 immutable Tree
@@ -21,12 +25,11 @@ immutable Tree
   prelim
   shift
   change
-  x
-  y
+  locs
   distance
 end
 
-function typegen(tree,distance)
+function Tree(tree,distance)
   mod = zeros(length(tree))
   thread = zeros(length(tree))
   prelim = zeros(length(tree))
@@ -34,17 +37,16 @@ function typegen(tree,distance)
   change = zeros(length(tree))
   ancestor = [i for i in 1:length(tree)]
   nodes = copy(tree)
-  x = rand(length(tree))
-  y = rand(length(tree))
-  t = Tree(nodes,mod,thread,ancestor,prelim,shift,change,x,y,distance)
+  locs = zeros(Point{2,Float64},length(tree))
+  t = Tree(nodes,mod,thread,ancestor,prelim,shift,change,locs,distance)
   return t
 end
 
-function layout_tree_buchheim(t,distance=ones(length(t)))
-  tree = typegen(t,distance)
+function layout(t,distance=ones(length(t)))
+  tree = Tree(t,distance)
   first_walk(1,tree)
   second_walk(1,-tree.prelim[1],0,tree)
-  return tree.x, tree.y
+  return tree.locs
 end
 
 function parent(v,t)
@@ -171,11 +173,9 @@ end
 function second_walk(v,m,depth,t)
   prelim = t.prelim
   mod = t.mod
-  x = t.x
-  y = t.y
+  locs = t.locs
   distance = t.distance
-  x[v] = prelim[v] + m
-  y[v] = -depth
+  locs[v] = Point(prelim[v]+m,-depth)
   if length(t.nodes[v])!=0
     maxdist = maximum([distance[i] for i in t.nodes[v]])
   else
@@ -230,3 +230,5 @@ function next_right(v,t)
     return thread[v]
   end
 end
+
+end #end of module
