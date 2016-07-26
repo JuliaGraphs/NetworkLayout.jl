@@ -46,7 +46,7 @@ a = adjacency_matrix(g)
 tol = 0.1
 C = 0.2
 K = 1
-network = Layout(g,locs,tol,C,K)
+network = Layout(a,locs,tol,C,K)
 state = start(network)
 while !done(network,state)
   network, state = next(network,state)
