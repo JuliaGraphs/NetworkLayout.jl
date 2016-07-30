@@ -1,4 +1,6 @@
 using NetworkLayout:SFDP
+using NetworkLayout:Spring
+using NetworkLayout:Stress
 using NetworkLayout:Buchheim
 using LightGraphs
 using BaseTestNext
@@ -26,6 +28,56 @@ using GeometryTypes
       positions = SFDP.layout(adj_matrix, 2, tol=0.1, K=1)
       @test typeof(positions) == Array{FixedSizeArrays.Point{2,Float64},1}
       positions = SFDP.layout(adj_matrix, 3, tol=0.1, K=1)
+      @test typeof(positions) == Array{FixedSizeArrays.Point{3,Float64},1}
+    end
+
+  end
+
+  @testset "Testing Stress Majorization Algorithm" begin
+
+    @testset "Testing Jagmesh1 graph" begin
+      array = round(Int,open(readdlm,"jagmesh1.mtx"))
+      row = array[:,1]
+      col = array[:,2]
+      entry = [1 for i in 1:3600]
+      adj_matrix = sparse(row,col,entry)
+      positions = Stress.layout(adj_matrix, 2)
+      @test typeof(positions) == Array{FixedSizeArrays.Point{2,Float64},1}
+      positions = Stress.layout(adj_matrix, 3)
+      @test typeof(positions) == Array{FixedSizeArrays.Point{3,Float64},1}
+    end
+
+    @testset "Testing WheelGraph" begin
+      g = WheelGraph(10)
+      adj_matrix = adjacency_matrix(g)
+      positions = Stress.layout(adj_matrix, 2)
+      @test typeof(positions) == Array{FixedSizeArrays.Point{2,Float64},1}
+      positions = Stress.layout(adj_matrix, 3)
+      @test typeof(positions) == Array{FixedSizeArrays.Point{3,Float64},1}
+    end
+
+  end
+
+  @testset "Testing Spring Algorithm" begin
+
+    @testset "Testing Jagmesh1 graph" begin
+      array = round(Int,open(readdlm,"jagmesh1.mtx"))
+      row = array[:,1]
+      col = array[:,2]
+      entry = [1 for i in 1:3600]
+      adj_matrix = sparse(row,col,entry)
+      positions = Spring.layout(adj_matrix, 2, C=2.0, MAXITER=100, INITTEMP=2.0)
+      @test typeof(positions) == Array{FixedSizeArrays.Point{2,Float64},1}
+      positions = Spring.layout(adj_matrix, 3, C=2.0, MAXITER=100, INITTEMP=2.0)
+      @test typeof(positions) == Array{FixedSizeArrays.Point{3,Float64},1}
+    end
+
+    @testset "Testing WheelGraph" begin
+      g = WheelGraph(10)
+      adj_matrix = adjacency_matrix(g)
+      positions = Spring.layout(adj_matrix, 2, C=2.0, MAXITER=100, INITTEMP=2.0)
+      @test typeof(positions) == Array{FixedSizeArrays.Point{2,Float64},1}
+      positions = Spring.layout(adj_matrix, 3, C=2.0, MAXITER=100, INITTEMP=2.0)
       @test typeof(positions) == Array{FixedSizeArrays.Point{3,Float64},1}
     end
 
