@@ -97,7 +97,6 @@ function layout_iterator!{A,P,F}(network::Layout{A,P,F},iter)
       scale      = min(force_mag, TEMP)/force_mag
       locs[i]   += force[i] * scale
   end
-
   return (iter+1)
 end
 end #end of module

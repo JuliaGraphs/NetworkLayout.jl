@@ -1,3 +1,7 @@
+module Stress
+
+using GeometryTypes
+export layout, Layout
 """
 Compute graph layout using stress majorization
 
@@ -52,43 +56,98 @@ Reference:
         pages={239--250},
     }
 """
-function layout_stressmajorize_adj(δ, p::Int=2, w=nothing, X0=randn(size(δ, 1), p);
-        maxiter = 400size(X0, 1)^2, abstols=√(eps(eltype(X0))),
-        reltols=√(eps(eltype(X0))), abstolx=√(eps(eltype(X0))),
+
+immutable Layout
+  δ
+  w
+  X0
+  Xs
+  pinvLw
+  maxiter
+  abstols
+  reltols
+  abstolx
+  verbose
+  stresses
+end
+
+function Layout(δ,w,maxiter,X0,abstols,reltols,abstolx,verbose,returnall)
+  if w==nothing
+      w = δ.^-(2.0)
+      w[!isfinite(w)] = 0
+  end
+  @assert size(X0, 1)==size(δ, 1)==size(δ, 2)==size(w, 1)==size(w, 2)
+  Lw = weightedlaplacian(w)
+  pinvLw = pinv(Lw)
+  newstress = stress(X0, δ, w)
+  Xs = Array[X0]
+  stresses = [newstress]
+  return Layout(δ,w,X0,Xs,pinvLw,maxiter,abstols,reltols,abstolx,verbose,stresses)
+end
+
+function layout(δ, p::Int=2, w=nothing, X0=rand(Point{p, Float64}, size(δ,1));
+        maxiter = 400size(X0, 1)^2, abstols=√(eps(eltype(Float64))),
+        reltols=√(eps(eltype(Float64))), abstolx=√(eps(eltype(Float64))),
         verbose = false, returnall = false)
+  network = Layout(δ,w,maxiter,X0,abstols,reltols,abstolx,verbose,returnall)
+  state = start(network)
+  while !done(network,state)
+    state = next(network,state)
+  end
+  Xs = network.Xs
+  stresses = network.stresses
+  returnall ? (Xs, stresses) : Xs[end]
+end
 
-    @assert size(X0, 2)==p
+function Base.start(network::Layout)
+  newstress = stress(network.X0,network.δ,network.w)
+  oldstress = newstress
+  iter = 1
+  state = Any[newstress,oldstress,network.X0,1]
+  return state
+end
 
-    if w==nothing
-        w = δ.^-2
-        w[!isfinite(w)] = 0
-    end
+function Base.next(network::Layout,state)
+  state = layout_iterator!(network,state[1],state[2],state[3],state[4])
+  return network,state
+end
 
-    @assert size(X0, 1)==size(δ, 1)==size(δ, 2)==size(w, 1)==size(w, 2)
-    Lw = weightedlaplacian(w)
-    pinvLw = pinv(Lw)
-    newstress = stress(X0, δ, w)
-    Xs = Matrix[X0]
-    stresses = [newstress]
-    iter = 0
-    for iter = 1:maxiter
-        #TODO the faster way is to drop the first row and col from the iteration
-        X = pinvLw * (LZ(X0, δ, w)*X0)
-        @assert all(isfinite(X))
-        newstress, oldstress = stress(X, δ, w), newstress
-        verbose && info("""Iteration $iter
-        Change in coordinates: $(vecnorm(X - X0))
-        Stress: $newstress (change: $(newstress-oldstress))
-        """)
-        push!(Xs, X)
-        push!(stresses, newstress)
-        abs(newstress - oldstress) < reltols * newstress && break
-        abs(newstress - oldstress) < abstols && break
-        vecnorm(X - X0) < abstolx && break
-        X0 = X
-    end
-    iter == maxiter && warn("Maximum number of iterations reached without convergence")
-    returnall ? (Xs, stresses) : Xs[end]
+function Base.done(network::Layout,state)
+  newstress = state[1]
+  oldstress = state[2]
+  iter = state[3]
+  maxiter = network.maxiter
+  reltols = network.reltols
+  abstols = network.abstols
+  abstolx = network.abstolx
+  X = network.Xs[end]
+  X0 = state[3]
+  abs(newstress - oldstress) < reltols * newstress && return true
+  abs(newstress - oldstress) < abstols && return true
+  vecnorm(X - X0) < abstolx && return true
+  iter == maxiter && warn("Maximum number of iterations reached without convergence")
+  iter == maxiter && return true
+end
+
+function layout_iterator!(network::Layout,newstress,oldstress,X0,iter)
+  δ = network.δ
+  w = network.w
+  pinvLw = network.pinvLw
+  Xs = network.Xs
+  verbose = network.verbose
+  stresses = network.stresses
+  #TODO the faster way is to drop the first row and col from the iteration
+  X = pinvLw * (LZ(X0, δ, w)*X0)
+  @assert all(isfinite(X))
+  newstress, oldstress = stress(X, δ, w), newstress
+  verbose && info("""Iteration $iter
+  Change in coordinates: $(vecnorm(X - X0))
+  Stress: $newstress (change: $(newstress-oldstress))
+  """)
+  push!(Xs, X)
+  push!(stresses, newstress)
+  X0 = X
+  return Any[newstress,oldstress,(iter+1)]
 end
 
 """
@@ -162,3 +221,5 @@ function LZ(Z, d, w)
     @assert all(isfinite(L))
     L
 end
+
+end # end of module
