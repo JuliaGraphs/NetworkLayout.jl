@@ -2,6 +2,7 @@ using NetworkLayout:SFDP
 using NetworkLayout:Spring
 using NetworkLayout:Stress
 using NetworkLayout:Buchheim
+using NetworkLayout:Spectral
 using LightGraphs
 using BaseTestNext
 using GeometryTypes
@@ -78,6 +79,27 @@ using GeometryTypes
       positions = Spring.layout(adj_matrix, 2, C=2.0, MAXITER=100, INITTEMP=2.0)
       @test typeof(positions) == Array{FixedSizeArrays.Point{2,Float64},1}
       positions = Spring.layout(adj_matrix, 3, C=2.0, MAXITER=100, INITTEMP=2.0)
+      @test typeof(positions) == Array{FixedSizeArrays.Point{3,Float64},1}
+    end
+
+  end
+
+  @testset "Testing Spectral Algorithm" begin
+
+    @testset "Testing Jagmesh1 graph" begin
+      array = round(Int,open(readdlm,"jagmesh1.mtx"))
+      row = array[:,1]
+      col = array[:,2]
+      entry = [1 for i in 1:3600]
+      adj_matrix = sparse(row,col,entry)
+      positions = Spectral.layout(adj_matrix)
+      @test typeof(positions) == Array{FixedSizeArrays.Point{3,Float64},1}
+    end
+
+    @testset "Testing WheelGraph" begin
+      g = WheelGraph(10)
+      adj_matrix = adjacency_matrix(g)
+      positions = Spectral.layout(adj_matrix)
       @test typeof(positions) == Array{FixedSizeArrays.Point{3,Float64},1}
     end
 
