@@ -1,3 +1,8 @@
+module Circular
+
+using GeometryTypes
+export layout
+
 """
 This function wrap from [NetworkX](https://github.com/networkx/networkx)
 Position nodes on a circle.
@@ -14,12 +19,15 @@ julia> g = simple_house_graph()
 julia> locs_x, locs_y = circular_layout(g)
 ```
 """
-function circular_layout(G)
-    if _nv(G) == 1
-        return [0.0], [0.0]
+function layout(G)
+    if size(G,1) == 1
+        return Point{2,Float64}[Point(0.0,0.0)]
     else
         # Discard the extra angle since it matches 0 radians.
-        θ = linspace(0, 2pi, _nv(G) + 1)[1:end-1]
-        return cos(θ), sin(θ)
+        θ = linspace(0, 2pi, size(G,1) + 1)[1:end-1]
+        x,y = cos(θ), sin(θ)
+        return Point{2,Float64}[Point(x[i],y[i]) for i in 1:size(G,1)]
     end
 end
+
+end # end of module
