@@ -27,17 +27,22 @@ immutable Layout{A,P,F}
   INITTEMP
 end
 
+function Layout(adj_matrix,locs,C,MAXITER,INITTEMP)
+  # Store forces and apply at end of iteration all at once
+  const N = size(adj_matrix, 1)
+  F = eltype(locs)
+  force = zeros(F,N)
+  # Layout object for the graph
+  return Layout(adj_matrix,locs,force,C,MAXITER,INITTEMP)
+end
+
 function layout{T}(adj_matrix::T,
                   dim::Int,
                   locs = (2*rand(Point{dim, Float64}, size(adj_matrix,1)) .- 1);
                   C=2.0, MAXITER=100, INITTEMP=2.0)
   size(adj_matrix, 1) != size(adj_matrix, 2) && error("Adj. matrix must be square.")
-  const N = size(adj_matrix, 1)
-  # Store forces and apply at end of iteration all at once
-  F = eltype(locs)
-  force = zeros(F,N)
   # Layout object for the graph
-  network = Layout(adj_matrix,locs,force,C,MAXITER,INITTEMP)
+  network = Layout(adj_matrix,locs,C,MAXITER,INITTEMP)
   state = start(network)
   while !done(network,state)
     network,state = next(network,state)
