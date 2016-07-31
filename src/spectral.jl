@@ -1,5 +1,9 @@
+module Spectral
 
-function make_symmetric(A::AMat)
+using GeometryTypes
+export layout
+
+function make_symmetric(A)
     A = copy(A)
     for i=1:size(A,1), j=i+1:size(A,2)
         A[i,j] = A[j,i] = A[i,j]+A[j,i]
@@ -7,7 +11,7 @@ function make_symmetric(A::AMat)
     A
 end
 
-function compute_laplacian(adjmat::AMat, node_weights::AVec)
+function compute_laplacian(adjmat, node_weights)
     n, m = size(adjmat)
     # @show size(adjmat), size(node_weights)
     @assert n == m == length(node_weights)
@@ -36,7 +40,7 @@ end
 # this recipe uses the technique of Spectral Graph Drawing, which is an
 # under-appreciated method of graph layouts; easier, simpler, and faster
 # than the more common spring-based methods.
-function spectral_graph(adjmat::AMat; node_weights::AVec = ones(size(adjmat,1)), kw...)
+function layout{T}(adjmat::T; node_weights = ones(eltype(T),size(adjmat,1)), kw...)
     adjmat = make_symmetric(adjmat)
     L, D = compute_laplacian(adjmat, node_weights)
 
@@ -45,5 +49,10 @@ function spectral_graph(adjmat::AMat; node_weights::AVec = ones(size(adjmat,1)),
 
     # x, y, and z are the 2nd through 4th eigenvectors of the solution to the
     # generalized eigenvalue problem Lv = λDv
-    vec(v[2,:]), vec(v[3,:]), vec(v[4,:])
+    x = vec(v[2,:])
+    y = vec(v[3,:])
+    z = vec(v[4,:])
+    Point{3,Float64}[Point(x[i],y[i],z[i]) for i in 1:size(x,1)]
 end
+
+end # end of module
