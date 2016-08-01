@@ -1,8 +1,3 @@
-module Stress
-
-using GeometryTypes, Compat
-
-export layout
 """
 Compute graph layout using stress majorization
 
@@ -10,8 +5,8 @@ Inputs:
 
     δ: Matrix of pairwise distances
     p: Dimension of embedding (default: 2)
-    w: Matrix of weights. If not specified, defaults to
-           w[i,j] = δ[i,j]^-2 if δ[i,j] is nonzero, or 0 otherwise
+    weights: Matrix of weights. If not specified, defaults to
+           weights[i,j] = δ[i,j]^-2 if δ[i,j] is nonzero, or 0 otherwise
     X0: Initial guess for the layout. Coordinates are given in rows.
         If not specified, default to random matrix of Gaussians
 
@@ -30,14 +25,10 @@ and the additional output as requested:
     abstolx:   Absolute tolerance for convergence of layout.
                The iterations terminate if the Frobenius norm of two successive
                layouts is less than abstolx. Default: √(eps(eltype(X0))
-    verbose:   If true, prints convergence information at each iteration.
-               Default: false
-    returnall: If true, returns all iterates and their associated stresses.
-               If false (default), returns the last iterate
 
 Output:
 
-    The final layout X, with coordinates given in rows, unless returnall=true.
+    The final layout positions.
 
 Reference:
 
@@ -57,122 +48,115 @@ Reference:
         pages={239--250},
     }
 """
+module Stress
 
-immutable Layout
-    δ
-    w
-    X0
-    Xs
-    pinvLw
-    maxiter
-    abstols
-    reltols
-    abstolx
-    verbose
-    stresses
+using GeometryTypes, Compat, FixedSizeArrays
+import Base: start, next, done
+
+Base.promote_op{T1, T2<:FixedArray}(::typeof(*), ::Type{T1}, x::Type{T2}) = x
+
+immutable Layout{M1<:AbstractMatrix, M2<:AbstractMatrix, VP<:AbstractVector,FT<:AbstractFloat}
+    δ::M1
+    weights::M2
+    positions::VP
+    pinvLw::Matrix{FT}
+    maxiter::Int
+    abstols::FT
+    reltols::FT
+    abstolx::FT
 end
 
-function Layout(δ,w,maxiter,X0,abstols,reltols,abstolx,verbose,returnall)
-    if w==nothing
-        w = δ.^-(2.0)
-        w[!isfinite(w)] = 0
+
+function initialweights(D, T=eltype(D))
+    map(D) do d
+        x = T(d^(-2.0))
+        isfinite(x) ? x : zero(T)
     end
-    @assert size(X0, 1)==size(δ, 1)==size(δ, 2)==size(w, 1)==size(w, 2)
-    Lw = weightedlaplacian(w)
-    pinvLw = pinv(Lw)
-    newstress = stress(X0, δ, w)
-    Xs = Array[X0]
-    stresses = [newstress]
-    return Layout(δ,w,X0,Xs,pinvLw,maxiter,abstols,reltols,abstolx,verbose,stresses)
 end
 
-function layout(δ, p::Int=2, w=nothing, X0=rand(Point{p, Float64}, size(δ,1));
-        maxiter = 400size(X0, 1)^2, abstols=√(eps(eltype(Float64))),
-        reltols=√(eps(eltype(Float64))), abstolx=√(eps(eltype(Float64))),
-        verbose = false, returnall = false
+function Layout{N, T}(
+        δ, PT::Type{Point{N, T}}=Point{2, Float64};
+        startpositions=rand(PT, size(δ,1)), weights=initialweights(δ, T),
+        iterations=400*size(δ,1)^2, abstols=√(eps(T)),
+        reltols=√(eps(T)), abstolx=√(eps(T))
     )
-    network = Layout(δ,w,maxiter,X0,abstols,reltols,abstolx,verbose,returnall)
-    state = start(network)
-    while !done(network,state)
-        state = next(network,state)
+    @assert size(startpositions, 1)==size(δ, 1)==size(δ, 2)==size(weights, 1)==size(weights, 2)
+    Lw = weightedlaplacian(weights)
+    pinvLw = pinv(Lw)
+    return Layout(δ, weights, startpositions, pinvLw, iterations, abstols, reltols, abstolx)
+end
+
+
+function layout{N, T}(
+        δ, PT::Type{Point{N, T}}=Point{2, Float64};
+        startpositions=rand(PT, size(δ,1)), kw_args...
+    )
+    layout!(δ, startpositions; kw_args...)
+end
+
+function layout!{N, T}(
+        δ, startpositions::AbstractVector{Point{N, T}};
+        iterations=400*size(δ,1)^2, kw_args...
+    )
+    iter = Layout(δ, Point{N,T}; startpositions=startpositions, kw_args...)
+    state = start(iter)
+    while !done(iter, state)
+        iter, state = next(iter, state)
     end
-    Xs = network.Xs
-    stresses = network.stresses
-    returnall ? (Xs, stresses) : Xs[end]
+    state[end] > iterations && warn("Maximum number of iterations reached without convergence")
+    iter.positions
 end
 
-function Base.start(network::Layout)
-    newstress = stress(network.X0,network.δ,network.w)
-    oldstress = newstress
-    iter = 1
-    state = Any[newstress,oldstress,network.X0,1]
-    return state
+function start(network::Layout)
+    s = stress(network.positions, network.δ, network.weights)
+    return (s, s, network.positions, 0)
 end
 
-function Base.next(network::Layout,state)
-    state = layout_iterator!(network,state[1],state[2],state[3],state[4])
-    return network,state
-end
-
-function Base.done(network::Layout,state)
-    newstress = state[1]
-    oldstress = state[2]
-    iter = state[3]
-    maxiter = network.maxiter
-    reltols = network.reltols
-    abstols = network.abstols
-    abstolx = network.abstolx
-    X = network.Xs[end]
-    X0 = state[3]
-    abs(newstress - oldstress) < reltols * newstress && return true
-    abs(newstress - oldstress) < abstols && return true
-    vecnorm(X - X0) < abstolx && return true
-    iter == maxiter && warn("Maximum number of iterations reached without convergence")
-    iter == maxiter && return true
-end
-
-function layout_iterator!(network::Layout,newstress,oldstress,X0,iter)
-    δ = network.δ
-    w = network.w
-    pinvLw = network.pinvLw
-    Xs = network.Xs
-    verbose = network.verbose
-    stresses = network.stresses
+function next(iter::Layout, state)
+    newstress, oldstress, X0, i = state
+    δ, weights, pinvLw, positions = iter.δ, iter.weights, iter.pinvLw, iter.positions
     #TODO the faster way is to drop the first row and col from the iteration
-    X = pinvLw * (LZ(X0, δ, w)*X0)
-    @assert all(isfinite(X))
-    newstress, oldstress = stress(X, δ, w), newstress
-    verbose && info("""
-        Iteration $iter
-        Change in coordinates: $(vecnorm(X - X0))
-        Stress: $newstress (change: $(newstress-oldstress))
-    """)
-    push!(Xs, X)
-    push!(stresses, newstress)
-    X0 = X
-    return Any[newstress, oldstress, (iter+1)]
+    t = LZ(X0, δ, weights)
+    positions = pinvLw * (t*X0)
+    @assert all(x->all(map(isfinite, x)), positions)
+    newstress, oldstress = stress(positions, δ, weights), newstress
+    iter.positions[:] = positions
+    return iter, (newstress, oldstress, positions, (i+1))
 end
+
+function done(iter::Layout, state)
+    newstress, oldstress, X0, i = state
+    maxiter, reltols = iter.maxiter, iter.reltols
+    positions, abstols, abstolx = iter.positions, iter.abstols, iter.abstolx
+    (i == 0) && (i<maxiter) && return false #special case 0th iteration
+
+    return (
+        i > maxiter ||
+        abs(newstress - oldstress) < reltols * newstress ||
+        abs(newstress - oldstress) < abstols ||
+        vecnorm(positions - X0) < abstolx
+    )
+end
+
 
 """
 Stress function to majorize
 
 Input:
-    X: A particular layout (coordinates in rows)
+    positions: A particular layout (coordinates in rows)
     d: Matrix of pairwise distances
-    w: Weights for each pairwise distance
+    weights: Weights for each pairwise distance
 
 See (1) of Reference
 """
-function stress(X, d=fill(1.0, size(X, 1), size(X, 1)), w=nothing)
-    s = 0.0
-    n = size(X, 1)
-    if w==nothing
-        w = d.^-2
-        w[!isfinite(w)] = 0
-    end
-    @assert n==size(d, 1)==size(d, 2)==size(w, 1)==size(w, 2)
+function stress{T, N}(
+        positions::AbstractArray{Point{T, N}},
+        d=ones(T, length(positions), length(positions)), weights=initialweights(d, T)
+    )
+    s = zero(T); n = length(positions)
+    @assert n==size(d, 1)==size(d, 2)==size(weights, 1)==size(weights, 2)
     for j=1:n, i=1:j-1
-        s += w[i, j] * (norm(X[i,:] - X[j,:]) - d[i,j])^2
+        s += weights[i, j] * (norm(positions[i] - positions[j]) - d[i,j])^2
     end
     @assert isfinite(s)
     s
@@ -181,22 +165,21 @@ end
 
 
 """
-Compute weighted Laplacian given ideal weights w
+Compute weighted Laplacian given ideal weights weights
 
 Lʷ defined in (4) of the Reference
 """
-function weightedlaplacian(w)
-    n = Compat.LinAlg.checksquare(w)
-    T = eltype(w)
+function weightedlaplacian{T}(weights::AbstractMatrix{T})
+    n = Compat.LinAlg.checksquare(weights)
     Lw = zeros(T, n, n)
     for i=1:n
         D = zero(T)
         for j=1:n
             i==j && continue
-            Lw[i, j] = -w[i, j]
-            D += w[i, j]
+            Lw[i, j] = -weights[i, j]
+            D += weights[i, j]
         end
-        Lw[i, i]=D
+        Lw[i, i] = D
     end
     Lw
 end
@@ -206,24 +189,24 @@ Computes L^Z defined in (5) of the Reference
 
 Input: Z: current layout (coordinates)
        d: Ideal distances (default: all 1)
-       w: weights (default: d.^-2)
+       weights: weights (default: d.^-2)
 """
-function LZ(Z, d, w)
-    n = size(Z, 1)
-    L = zeros(n, n)
+function LZ{N,T}(Z::AbstractVector{Point{N,T}}, d, weights)
+    n = length(Z)
+    L = zeros(T, n, n)
     for i=1:n
-        D = 0.0
+        D = zero(T)
         for j=1:n
             i==j && continue
-            nrmz = norm(Z[i,:] - Z[j,:])
+            nrmz = norm(Z[i] - Z[j])
             nrmz==0 && continue
-            δ = w[i, j] * d[i, j]
+            δ = weights[i, j] * d[i, j]
             L[i, j] = -δ/nrmz
             D -= -δ/nrmz
         end
+        @assert isfinite(D)
         L[i, i] = D
     end
-    @assert all(isfinite(L))
     L
 end
 
