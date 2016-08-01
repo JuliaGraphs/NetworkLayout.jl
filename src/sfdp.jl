@@ -21,16 +21,16 @@ f_attr(a,b,K) = (norm(a-b)^2) / K
 # Calculate Repulsive force
 f_repln(a,b,C,K) = -C*(K^2) / norm(a-b)
 
-immutable Layout{A, P}
-    adj_matrix::A
+immutable Layout{M<:AbstractMatrix, P<:AbstractVector, T}
+    adj_matrix::M
     positions::P
-    tol
-    C
-    K
+    tol::T
+    C::T
+    K::T
 end
 
 function layout{T}(g::T, dim::Int, locs = (2*rand(Point{dim, Float64}, size(g,1)) .- 1); tol=1.0, C=0.2, K=1.0)
-    network = Layout(g,locs,tol,C,K)
+    network = Layout(g,locs,Float64(tol),Float64(C),Float64(K))
     state = start(network)
     while !done(network,state)
         network, state = next(network,state)
@@ -38,20 +38,15 @@ function layout{T}(g::T, dim::Int, locs = (2*rand(Point{dim, Float64}, size(g,1)
     return network.positions
 end
 
-Base.start(network::Layout) = Any[1,typemax(Float64),0,true,copy(network.positions)]
+Base.start(network::Layout) = (1,typemax(Float64),0, copy(network.positions))
 
 function Base.next(network::Layout, state)
-    state = layout_iterator!(network,state[1],state[2],state[3],state[5])
+    state = layout_iterator!(network, state...)
     return (network, state)
 end
 
 function Base.done(network::Layout, state)
-    if state[4]
-        state[4] = false
-        return state[4]
-    else
-        return dist_tolerance(network.positions,state[5],network.K,network.tol)
-    end
+    return dist_tolerance(network.positions, state[end], network.K, network.tol)
 end
 
 function layout_iterator!{A,P}(network::Layout{A,P},step,energy,progress,locs0)
@@ -81,7 +76,7 @@ function layout_iterator!{A,P}(network::Layout{A,P},step,energy,progress,locs0)
         energy = energy + norm(force)^2
     end
     step, progress = update_step(step, energy, energy0, progress)
-    return Any[step,energy,progress,false,locs0]
+    return (step,energy,progress,locs0)
 end
 
 function update_step(step, energy, energy0, progress)

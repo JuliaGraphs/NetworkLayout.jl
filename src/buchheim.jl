@@ -43,7 +43,7 @@ function Tree(tree,distance)
 end
 
 function layout(t,distance=ones(length(t)))
-    tree = Tree(t,distance)
+    tree = Tree(t, distance)
     first_walk(1,tree)
     second_walk(1,-tree.prelim[1],0,tree)
     return tree.locs
