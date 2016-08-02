@@ -51,10 +51,11 @@ Reference:
 module Stress
 
 using GeometryTypes, Compat, FixedSizeArrays
-import Base: start, next, done
+import Base: start, next, done, *
 
-Base.promote_op{T1, T2<:FixedArray}(::typeof(*), ::Type{T1}, x::Type{T2}) = x
-
+function (*){T<:LinAlg.BlasFloat,S<:FixedArray}(A::StridedMatrix{T}, x::StridedVector{S})
+    A_mul_B!(similar(x, S, size(A,1)), A, x)
+end
 immutable Layout{M1<:AbstractMatrix, M2<:AbstractMatrix, VP<:AbstractVector,FT<:AbstractFloat}
     δ::M1
     weights::M2
