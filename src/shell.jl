@@ -20,7 +20,7 @@ julia> locs_x, locs_y = shell_layout(g, nlist)
 ```
 """
 function layout(G, nlist::Union{Void, Vector{Vector{Int}}} = nothing)
-    if size(G,1) == 1
+    if size(G, 1) == 1
         return Point{2,Float64}[Point(0.0,0.0)]
     end
     if nlist == nothing
@@ -31,16 +31,16 @@ function layout(G, nlist::Union{Void, Vector{Vector{Int}}} = nothing)
     if length(nlist[1]) > 1
         radius = 1.0
     end
-    locs_x = Float64[]
-    locs_y = Float64[]
-    for nodes in nlist
+    T = Point{2, Float64}
+    locs = T[]
+    for (i, nodes) in enumerate(nlist)
         # Discard the extra angle since it matches 0 radians.
         θ = linspace(0, 2pi, length(nodes) + 1)[1:end-1]
-        append!(locs_x, radius*cos(θ))
-        append!(locs_y, radius*sin(θ))
+        x = T[(radius*cos(o), radius*sin(o)) for o in θ]
+        append!(locs, x)
         radius += 1.0
     end
-    Point{2,Float64}[Point(locs_x[i], locs_y[i]) for i in 1:size(G,1)]
+    locs
 end
 
 end # end of module

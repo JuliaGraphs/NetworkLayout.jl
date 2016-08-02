@@ -25,8 +25,7 @@ function layout(G)
     else
         # Discard the extra angle since it matches 0 radians.
         θ = linspace(0, 2pi, size(G,1) + 1)[1:end-1]
-        x,y = cos(θ), sin(θ)
-        return Point{2,Float64}[Point(x[i],y[i]) for i in 1:size(G,1)]
+        return Point{2,Float64}[(cos(o), sin(o)) for o in θ]
     end
 end
 

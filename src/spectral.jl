@@ -23,9 +23,9 @@ function compute_laplacian(adjmat, node_weights)
     # D is a diagonal matrix with the degrees (total weights for that node) on the diagonal
     deg = vec(sum(adjmat,1)) - diag(adjmat)
     D = diagm(deg)
-
+    T = eltype(node_weights)
     # Laplacian (L = D - adjmat)
-    L = Float64[i == j ? deg[i] : -adjmat[i,j] for i=1:n,j=1:n]
+    L = T[i == j ? deg[i] : -adjmat[i,j] for i=1:n,j=1:n]
 
     L, D
 end
@@ -46,13 +46,9 @@ function layout{T}(adjmat::T; node_weights = ones(eltype(T),size(adjmat,1)), kw.
 
     # get the matrix of eigenvectors
     v = eig(L, D)[2]
-
     # x, y, and z are the 2nd through 4th eigenvectors of the solution to the
     # generalized eigenvalue problem Lv = λDv
-    x = vec(v[2,:])
-    y = vec(v[3,:])
-    z = vec(v[4,:])
-    Point{3,Float64}[Point(x[i],y[i],z[i]) for i in 1:size(x,1)]
+    Point{3, Float64}[(v[2, i], v[3, i], v[4, i]) for i in 1:size(v,2)]
 end
 
 end # end of module
