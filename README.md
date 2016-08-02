@@ -1,6 +1,8 @@
 # NetworkLayout.jl
 Layout algorithms for graphs and trees in pure Julia.
 
+[![Coverage Status](https://coveralls.io/repos/github/JuliaGraphs/NetworkLayout.jl/badge.svg?branch=master)](https://coveralls.io/github/JuliaGraphs/NetworkLayout.jl?branch=master)
+
 Linux, OSX : [![Build Status](https://travis-ci.org/JuliaGraphs/NetworkLayout.jl.svg?branch=master)](https://travis-ci.org/JuliaGraphs/NetworkLayout.jl)
 
 Windows : [![Build status](https://ci.appveyor.com/api/projects/status/328ph0ct3t8fc91u/branch/master?svg=true)](https://ci.appveyor.com/project/abhijithanilkumar/networklayout-jl-b6gcd/branch/master)
