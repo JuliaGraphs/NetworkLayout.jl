@@ -18,7 +18,7 @@ Module Name : `SFDP`
 #### Usage
 
 ```julia
-layout(adjacency_matrix,dimension,intial_position;tolerance,C,K,MAXITER)
+layout(adjacency_matrix,dimension,intial_position;tolerance,C,K,iterations)
 ```
 ##### arguments
   * `adjacency_matrix` - sparse/full adjacency matrix that represents the graph
@@ -26,7 +26,7 @@ layout(adjacency_matrix,dimension,intial_position;tolerance,C,K,MAXITER)
   * `initial_position` - co-ordinates of the layout to start with. By default, a random layout is used
   * `tolerance` - permitted distance between current and calculated co-ordinate. Lower the tolerance, more the number of iterations (kwarg)
   * `C, K` - used to scale the layout (kwarg)
-  * `MAXITER` - Number of iterations we apply the forces (kwarg)
+  * `iterations` - Number of iterations we apply the forces (kwarg)
 
 ##### returns
   `network` - co-ordinates of nodes in the layout
@@ -43,7 +43,7 @@ using LightGraphs
 using NetworkLayout:SFDP
 g = WheelGraph(30)
 a = adjacency_matrix(g) # generates a sparse adjacency matrix
-network = layout(a,2,tol=0.1,C=1,K=1) # generate 2D layout
+network = layout(a,2,tol=0.1,C=1,K=1,iterations=10) # generate 2D layout
 ```
 Using Iterator :
 
@@ -53,8 +53,8 @@ a = adjacency_matrix(g)
 tol = 0.1
 C = 0.2
 K = 1
-MAXITER = 100
-network = Layout(a,locs,tol,C,K,MAXITER)
+iterations = 100
+network = Layout(a,locs,tol,C,K,iterations)
 state = start(network)
 while !done(network,state)
   network, state = next(network,state)
@@ -107,13 +107,13 @@ Module Name : `Spring`
 #### Usage
 
 ```julia
-layout(adjacency_matrix,dimension,intial_position;C,MAXITER,INITTEMP)
+layout(adjacency_matrix,dimension,intial_position;C,iterations,INITTEMP)
 ```
 ##### arguments
  * `adjacency_matrix` - sparse/full adjacency matrix that represents the graph
  * `dimension` - dimension in which the layouting code has to be generated
  * `initial_position` - co-ordinates of the layout to start with. By default, a random layout is used
- * `MAXITER` - Number of iterations we apply the forces (kwarg)
+ * `iterations` - Number of iterations we apply the forces (kwarg)
  * `C` - Constant to fiddle with density of resulting layout (kwarg)
  * `INITTEMP` - Initial "temperature", controls movement per iteration (kwarg)
 
@@ -132,17 +132,17 @@ using LightGraphs
 using NetworkLayout:Spring
 g = WheelGraph(30)
 a = adjacency_matrix(g) # generates a sparse adjacency matrix
-network = layout(a,2,C=2.0,MAXITER=100,K=2.0) # generate 2D layout
+network = layout(a,2,C=2.0,iterations=100,K=2.0) # generate 2D layout
 ```
 Using Iterator :
 
 ```julia
 g = WheelGraph(30)
 a = adjacency_matrix(g)
-MAXITER = 200
+iterations = 200
 C = 2.0
 INITTEMP = 2.0
-network = Layout(a,locs,C,MAXITER,INITTEMP)
+network = Layout(a,locs,C,iterations,INITTEMP)
 state = start(network)
 while !done(network,state)
  network, state = next(network,state)
@@ -159,18 +159,17 @@ Module Name : `Stress`
 #### Usage
 
 ```julia
-layout(δ,dimension,weights,intial_position;maxiter,abstols,reltols,abstolx,verbose,returnall)
+layout(δ,dimension;weights,intial_position,iterations,abstols,reltols,abstolx)
 ```
 ##### arguments
  * `δ` - Matrix of pairwise distances (Adjacency Matrix can be used)
  * `dimension` - dimension in which the layouting code has to be generated
- * `initial_position` - co-ordinates of the layout to start with. By default, a random layout is used
- * `maxiter` - Number of iterations we apply the forces (kwarg)
+ * `weights` - Matrix of weights (kwarg)
+ * `initial_position` - co-ordinates of the layout to start with. By default, a random layout is used (kwarg)
+ * `iterations` - Number of iterations we apply the forces (kwarg)
  * `abstols` - Absolute tolerance for convergence of stress (kwarg)
  * `reltols` - Relative tolerance for convergence of stress (kwarg)
  * `abstolx` - Absolute tolerance for convergence of layout (kwarg)
- * `verbose` - If true, prints convergence information at each iteration (kwarg)
- * `returnall` - If true, returns all iterates and their associated stresses (kwarg)
 
 ##### returns
  `network` - co-ordinates of nodes in the layout
@@ -193,21 +192,14 @@ Using Iterator :
 
 ```julia
 g = WheelGraph(30)
-a = adjacency_matrix(g)
-w=nothing
-X0=rand(Point{p, Float64}, size(δ,1))
-maxiter = 400size(X0, 1)^2
-abstols=√(eps(eltype(Float64)))
-reltols=√(eps(eltype(Float64)))
-abstolx=√(eps(eltype(Float64)))
-verbose = true
-returnall = true
-network = Layout(δ,w,maxiter,X0,abstols,reltols,abstolx,verbose,returnall)
-state = start(network)
-while !done(network,state)
- network, state = next(network,state)
+δ = adjacency_matrix(g)
+startpositions=rand(Point{p, Float64}, size(δ,1))
+iter = Layout(δ, Point{N,T}; startpositions=startpositions)
+state = start(iter)
+while !done(iter, state)
+    iter, state = next(iter, state)
 end
-return network.Xs[end]
+iter.positions
 ```
 
 ### Spectral Layout Algorithm
@@ -219,10 +211,10 @@ Module Name : `Spectral`
 #### Usage
 
 ```julia
-layout(adj_matrix; node_weights, kw...)
+layout(adjacency_matrix; node_weights, kw...)
 ```
 ##### arguments
- * `adj_matrix` - Adjacency Matrix in dense/sparse format
+ * `adjacency_matrix` - Adjacency Matrix in dense/sparse format
  * `node_weights` - weights for different nodes (kwarg)
 
 ##### returns
@@ -247,10 +239,10 @@ Module Name : `Circular`
 #### Usage
 
 ```julia
-layout(adj_matrix)
+layout(adjacency_matrix)
 ```
 ##### arguments
- * `adj_matrix` - Adjacency Matrix in dense/sparse format
+ * `adjacency_matrix` - Adjacency Matrix in dense/sparse format
 
 ##### returns
  `network` - co-ordinates of nodes in the layout
@@ -274,10 +266,10 @@ Module Name : `Shell`
 #### Usage
 
 ```julia
-layout(adj_matrix)
+layout(adjacency_matrix)
 ```
 ##### arguments
- * `adj_matrix` - Adjacency Matrix in dense/sparse format
+ * `adjacency_matrix` - Adjacency Matrix in dense/sparse format
 
 ##### returns
  `network` - co-ordinates of nodes in the layout

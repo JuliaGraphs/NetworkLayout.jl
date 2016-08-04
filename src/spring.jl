@@ -15,7 +15,7 @@ export Layout, layout
                of the matrix is used to determine if a link exists,
                but currently no sense of magnitude
     C          Constant to fiddle with density of resulting layout
-    MAXITER    Number of iterations we apply the forces
+    iterations Number of iterations we apply the forces
     INITTEMP   Initial "temperature", controls movement per iteration
 """
 
@@ -30,11 +30,11 @@ end
 function layout{T}(
         adj_matrix::T, dim::Int,
         startpositions = (2*rand(Point{dim, Float64}, size(adj_matrix,1)) .- 1);
-        C=2.0, MAXITER=100, INITTEMP=2.0
+        C=2.0, iterations=100, INITTEMP=2.0
     )
     size(adj_matrix, 1) != size(adj_matrix, 2) && error("Adj. matrix must be square.")
     # Layout object for the graph
-    network = Layout(adj_matrix,startpositions,C,MAXITER,INITTEMP)
+    network = Layout(adj_matrix,startpositions,C,iterations,INITTEMP)
     state = start(network)
     while !done(network,state)
         network,state = next(network,state)

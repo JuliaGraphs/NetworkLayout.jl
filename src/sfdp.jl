@@ -30,8 +30,8 @@ immutable Layout{M<:AbstractMatrix, P<:AbstractVector, T}
     MAXITER::Int
 end
 
-function layout{T}(g::T, dim::Int, locs = (2*rand(Point{dim, Float64}, size(g,1)) .- 1); tol=1.0, C=0.2, K=1.0, MAXITER=100)
-    network = Layout(g,locs,Float64(tol),Float64(C),Float64(K),Int(MAXITER))
+function layout{T}(g::T, dim::Int, locs = (2*rand(Point{dim, Float64}, size(g,1)) .- 1); tol=1.0, C=0.2, K=1.0, iterations=100)
+    network = Layout(g,locs,Float64(tol),Float64(C),Float64(K),Int(iterations))
     state = start(network)
     while !done(network,state)
         network, state = next(network,state)
