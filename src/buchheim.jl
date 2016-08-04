@@ -14,19 +14,19 @@ Arguments
 tree    Adjacency List that represents the given tree
 
 Returns
-locs     co-ordinates of the layout
+positions     co-ordinates of the layout
 """
 
-immutable Tree
-    nodes
-    mod
-    thread
-    ancestor
-    prelim
-    shift
-    change
-    locs
-    distance
+immutable Tree{A<:AbstractVector,P<:AbstractVector,F}
+    nodes::A
+    mod::F
+    thread::F
+    ancestor::Array{Int,1}
+    prelim::F
+    shift::F
+    change::F
+    positions::P
+    distance::F
 end
 
 function Tree(tree,distance)
@@ -37,19 +37,19 @@ function Tree(tree,distance)
     change = zeros(length(tree))
     ancestor = [i for i in 1:length(tree)]
     nodes = copy(tree)
-    locs = zeros(Point{2,Float64},length(tree))
-    t = Tree(nodes,mod,thread,ancestor,prelim,shift,change,locs,distance)
+    positions = zeros(Point{2,Float64},length(tree))
+    t = Tree(nodes,mod,thread,ancestor,prelim,shift,change,positions,distance)
     return t
 end
 
-function layout(t,distance=ones(length(t)))
+function layout{T}(t::AbstractVector{T},distance=ones(length(t)))
     tree = Tree(t, distance)
     first_walk(1,tree)
-    second_walk(1,-tree.prelim[1],0,tree)
-    return tree.locs
+    second_walk(1,-tree.prelim[1],0.0,tree)
+    return tree.positions
 end
 
-function parent(v,t)
+function parent{T}(v::T,t::Tree)
     tree = t.nodes
     for i in 1:length(tree)
         y = find(x->(x==v),tree[i])
@@ -60,7 +60,7 @@ function parent(v,t)
     return nothing
 end
 
-function first_walk(v,t)
+function first_walk{T}(v::T,t::Tree)
     prelim = t.prelim
     mod = t.mod
     tree = t.nodes
@@ -95,7 +95,7 @@ function first_walk(v,t)
     end
 end
 
-function apportion(v,defaultAncestor,t)
+function apportion{T}(v::T,defaultAncestor::T,t::Tree)
     tree = t.nodes
     ancestor = t.ancestor
     prelim = t.prelim
@@ -148,13 +148,13 @@ function apportion(v,defaultAncestor,t)
     return defaultAncestor
 end
 
-function number(v,t)
+function number{T}(v::T,t::Tree)
     p = parent(v,t)
     index = find(x->(x==v),t.nodes[p])[1]
     return index
 end
 
-function move_subtree(w_left,w_right,shift,t)
+function move_subtree{T}(w_left::T,w_right::T,shift::Float64,t::Tree)
     change = t.change
     prelim = t.prelim
     tree = t.nodes
@@ -170,23 +170,23 @@ function move_subtree(w_left,w_right,shift,t)
     mod[w_right] += shift
 end
 
-function second_walk(v,m,depth,t)
+function second_walk{T}(v::T,m::Float64,depth::Float64,t::Tree)
     prelim = t.prelim
     mod = t.mod
-    locs = t.locs
+    positions = t.positions
     distance = t.distance
-    locs[v] = Point(prelim[v]+m,-depth)
+    positions[v] = Point(prelim[v]+m,-depth)
     if length(t.nodes[v])!=0
         maxdist = maximum([distance[i] for i in t.nodes[v]])
     else
         maxdist = 0
     end
     for w in t.nodes[v]
-        second_walk(w,m+mod[v],depth+1+maxdist,t)
+        second_walk(w,m+mod[v],Float64(depth+1+maxdist),t)
     end
 end
 
-function find_ancestor(w,v,defaultAncestor,tree)
+function find_ancestor{T}(w::T,v::T,defaultAncestor::T,tree::Tree)
     ancestor = tree.ancestor
     if ancestor[w] in tree.nodes[parent(v,tree)]
         return ancestor[w]
@@ -195,7 +195,7 @@ function find_ancestor(w,v,defaultAncestor,tree)
     end
 end
 
-function execute_shifts(v,t)
+function execute_shifts{T}(v::T,t::Tree)
     tree = t.nodes
     shift = t.shift
     change = t.change
@@ -211,7 +211,7 @@ function execute_shifts(v,t)
     end
 end
 
-function next_left(v,t)
+function next_left{T}(v::T,t::Tree)
     tree = t.nodes
     thread = t.thread
     if length(tree[v]) != 0
@@ -221,7 +221,7 @@ function next_left(v,t)
     end
 end
 
-function next_right(v,t)
+function next_right{T}(v::T,t::Tree)
     tree = t.nodes
     thread = t.thread
     if length(tree[v]) != 0
