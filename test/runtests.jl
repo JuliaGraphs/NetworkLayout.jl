@@ -9,6 +9,7 @@ using LightGraphs
 using BaseTestNext
 using GeometryTypes
 
+
 function jagmesh()
     jagmesh_path = joinpath(dirname(@__FILE__), "jagmesh1.mtx")
     array = round(Int, open(readdlm, jagmesh_path))
@@ -25,20 +26,20 @@ jagmesh_adj = jagmesh()
         println("SFDP")
         @testset "Testing Jagmesh1 graph" begin
             println("SFDP Jagmesh1")
-            positions = @time SFDP.layout(jagmesh_adj, 2, tol=0.9, K=1, iterations=50)
+            positions = @time SFDP.layout(jagmesh_adj, Point{2, Float64}, tol=0.9, K=1, iterations=50)
             @test typeof(positions) == Vector{Point{2, Float64}}
-            positions = @time SFDP.layout(jagmesh_adj, 3, tol=0.9, K=1, iterations=50)
-            @test typeof(positions) == Vector{Point{3, Float64}}
+            positions = @time SFDP.layout(jagmesh_adj, Point3f0, tol=0.9, K=1, iterations=50)
+            @test typeof(positions) == Vector{Point{3, Float32}}
         end
 
         @testset "Testing WheelGraph" begin
             println("SFDP Wheelgraph")
             g = WheelGraph(10)
             adj_matrix = adjacency_matrix(g)
-            positions = @time SFDP.layout(adj_matrix, 2, tol=0.1, K=1)
-            @test typeof(positions) == Vector{Point{2, Float64}}
-            positions = @time SFDP.layout(adj_matrix, 3, tol=0.1, K=1)
-            @test typeof(positions) == Vector{Point{3, Float64}}
+            positions = @time SFDP.layout(adj_matrix, Point2f0, tol=0.1, K=1)
+            @test typeof(positions) == Vector{Point2f0}
+            positions = @time SFDP.layout(adj_matrix, Point3f0, tol=0.1, K=1)
+            @test typeof(positions) == Vector{Point3f0}
         end
 
     end
