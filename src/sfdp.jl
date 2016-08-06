@@ -38,7 +38,7 @@ function layout{T}(g::T, dim::Int, locs = (2*rand(Point{dim, Float64}, size(g,1)
     return network.positions
 end
 
-Base.start(network::Layout) = (1,typemax(Float64),0, copy(network.positions))
+Base.start(network::Layout) = (1,typemax(Float64),0,true,copy(network.positions))
 
 function Base.next(network::Layout, state)
     state = layout_iterator!(network, state...)
@@ -46,10 +46,13 @@ function Base.next(network::Layout, state)
 end
 
 function Base.done(network::Layout, state)
+    if state[4]
+        return false
+    end
     return dist_tolerance(network.positions, state[end], network.K, network.tol)
 end
 
-function layout_iterator!{A,P}(network::Layout{A,P},step,energy,progress,locs0)
+function layout_iterator!{A,P,T}(network::Layout{A,P,T},step,energy,progress,start,locs0)
     g = network.adj_matrix
     N = size(g,1)
     locs = network.positions
@@ -76,7 +79,7 @@ function layout_iterator!{A,P}(network::Layout{A,P},step,energy,progress,locs0)
         energy = energy + norm(force)^2
     end
     step, progress = update_step(step, energy, energy0, progress)
-    return (step,energy,progress,locs0)
+    return (step,energy,progress,false,locs0)
 end
 
 function update_step(step, energy, energy0, progress)
