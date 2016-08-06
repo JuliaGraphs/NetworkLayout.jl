@@ -19,32 +19,22 @@ export Layout, layout
     INITTEMP   Initial "temperature", controls movement per iteration
 """
 
-immutable Layout{A,P,F}
+immutable Layout{A<:AbstractMatrix, P<:AbstractVector, T}
   adj_matrix::A
   positions::P
-  force::F
-  C
-  MAXITER
-  INITTEMP
-end
-
-function Layout(adj_matrix,locs,C,MAXITER,INITTEMP)
-    # Store forces and apply at end of iteration all at once
-    N = size(adj_matrix, 1)
-    F = eltype(locs)
-    force = zeros(F,N)
-    # Layout object for the graph
-    return Layout(adj_matrix,locs,force,C,MAXITER,INITTEMP)
+  C::T
+  MAXITER::Int
+  INITTEMP::T
 end
 
 function layout{T}(
         adj_matrix::T, dim::Int,
-        locs = (2*rand(Point{dim, Float64}, size(adj_matrix,1)) .- 1);
+        startpositions = (2*rand(Point{dim, Float64}, size(adj_matrix,1)) .- 1);
         C=2.0, MAXITER=100, INITTEMP=2.0
     )
     size(adj_matrix, 1) != size(adj_matrix, 2) && error("Adj. matrix must be square.")
     # Layout object for the graph
-    network = Layout(adj_matrix,locs,C,MAXITER,INITTEMP)
+    network = Layout(adj_matrix,startpositions,C,MAXITER,INITTEMP)
     state = start(network)
     while !done(network,state)
         network,state = next(network,state)
@@ -61,16 +51,17 @@ end
 
 Base.done(network::Layout,state) = (state == network.MAXITER)
 
-function layout_iterator!{A,P,F}(network::Layout{A,P,F}, iter)
+function layout_iterator!{A,P,T}(network::Layout{A,P,T}, iter)
     # The optimal distance bewteen vertices
     adj_matrix = network.adj_matrix
-    force = network.force
+    N = size(adj_matrix,1)
+    force = zeros(eltype(P),N)
     locs = network.positions
     C = network.C
     MAXITER = network.MAXITER
     INITTEMP = network.INITTEMP
     N = size(adj_matrix,1)
-    Ftype = eltype(F)
+    Ftype = eltype(force)
     K = C * sqrt(4.0 / N)
 
     # Calculate forces
