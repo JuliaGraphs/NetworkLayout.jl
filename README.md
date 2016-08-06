@@ -18,7 +18,7 @@ Module Name : `SFDP`
 #### Usage
 
 ```julia
-layout(adjacency_matrix,dimension,intial_position;tolerance,C,K)
+layout(adjacency_matrix,dimension,intial_position;tolerance,C,K,MAXITER)
 ```
 ##### arguments
   * `adjacency_matrix` - sparse/full adjacency matrix that represents the graph
@@ -26,6 +26,7 @@ layout(adjacency_matrix,dimension,intial_position;tolerance,C,K)
   * `initial_position` - co-ordinates of the layout to start with. By default, a random layout is used
   * `tolerance` - permitted distance between current and calculated co-ordinate. Lower the tolerance, more the number of iterations (kwarg)
   * `C, K` - used to scale the layout (kwarg)
+  * `MAXITER` - Number of iterations we apply the forces (kwarg)
 
 ##### returns
   `network` - co-ordinates of nodes in the layout
@@ -52,7 +53,8 @@ a = adjacency_matrix(g)
 tol = 0.1
 C = 0.2
 K = 1
-network = Layout(a,locs,tol,C,K)
+MAXITER = 100
+network = Layout(a,locs,tol,C,K,MAXITER)
 state = start(network)
 while !done(network,state)
   network, state = next(network,state)

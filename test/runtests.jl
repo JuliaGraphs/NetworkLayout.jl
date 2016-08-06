@@ -95,6 +95,12 @@ jagmesh_adj = jagmesh()
           positions = @time Circular.layout(adj_matrix)
           @test typeof(positions) == Vector{Point{2, Float64}}
         end
+        @testset "Testing Base Case" begin
+          g = WheelGraph(10)
+          adj_matrix = [1]
+          positions = @time Circular.layout(adj_matrix)
+          @test typeof(positions) == Vector{Point{2, Float64}}
+        end
 
     end
 

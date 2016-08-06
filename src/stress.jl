@@ -52,6 +52,7 @@ module Stress
 
 using GeometryTypes, Compat, FixedSizeArrays
 import Base: start, next, done, *
+export layout, Layout
 
 function (*){T<:LinAlg.BlasFloat,S<:FixedArray}(A::StridedMatrix{T}, x::StridedVector{S})
     A_mul_B!(similar(x, S, size(A,1)), A, x)

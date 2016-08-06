@@ -27,10 +27,11 @@ immutable Layout{M<:AbstractMatrix, P<:AbstractVector, T}
     tol::T
     C::T
     K::T
+    MAXITER::Int
 end
 
-function layout{T}(g::T, dim::Int, locs = (2*rand(Point{dim, Float64}, size(g,1)) .- 1); tol=1.0, C=0.2, K=1.0)
-    network = Layout(g,locs,Float64(tol),Float64(C),Float64(K))
+function layout{T}(g::T, dim::Int, locs = (2*rand(Point{dim, Float64}, size(g,1)) .- 1); tol=1.0, C=0.2, K=1.0, MAXITER=100)
+    network = Layout(g,locs,Float64(tol),Float64(C),Float64(K),Int(MAXITER))
     state = start(network)
     while !done(network,state)
         network, state = next(network,state)
@@ -38,7 +39,7 @@ function layout{T}(g::T, dim::Int, locs = (2*rand(Point{dim, Float64}, size(g,1)
     return network.positions
 end
 
-Base.start(network::Layout) = (1,typemax(Float64),0,true,copy(network.positions))
+Base.start(network::Layout) = (1,typemax(Float64),0,true,1,copy(network.positions))
 
 function Base.next(network::Layout, state)
     state = layout_iterator!(network, state...)
@@ -49,10 +50,10 @@ function Base.done(network::Layout, state)
     if state[4]
         return false
     end
-    return dist_tolerance(network.positions, state[end], network.K, network.tol)
+    return (state[5]==network.MAXITER) || dist_tolerance(network.positions, state[end], network.K, network.tol)
 end
 
-function layout_iterator!{A,P,T}(network::Layout{A,P,T},step,energy,progress,start,locs0)
+function layout_iterator!{A,P,T}(network::Layout{A,P,T},step,energy,progress,start,iter,locs0)
     g = network.adj_matrix
     N = size(g,1)
     locs = network.positions
@@ -79,7 +80,7 @@ function layout_iterator!{A,P,T}(network::Layout{A,P,T},step,energy,progress,sta
         energy = energy + norm(force)^2
     end
     step, progress = update_step(step, energy, energy0, progress)
-    return (step,energy,progress,false,locs0)
+    return (step,energy,progress,false,iter+1,locs0)
 end
 
 function update_step(step, energy, energy0, progress)
