@@ -1,9 +1,3 @@
-module Buchheim
-
-using GeometryTypes
-
-export layout
-
 """
 Using the algorithm proposed in the paper,
 "Improving Walker's Algorithm to Run in Linear Time"
@@ -17,6 +11,10 @@ Returns
 positions     co-ordinates of the layout
 """
 
+module Buchheim
+
+using GeometryTypes
+
 immutable Tree{A<:AbstractVector,P<:AbstractVector,F}
     nodes::A
     mod::F
@@ -26,10 +24,10 @@ immutable Tree{A<:AbstractVector,P<:AbstractVector,F}
     shift::F
     change::F
     positions::P
-    distance::F
+    nodesize::F
 end
 
-function Tree(tree,distance)
+function Tree{T}(tree::AbstractVector{T}, nodesize)
     mod = zeros(length(tree))
     thread = zeros(length(tree))
     prelim = zeros(length(tree))
@@ -38,12 +36,12 @@ function Tree(tree,distance)
     ancestor = [i for i in 1:length(tree)]
     nodes = copy(tree)
     positions = zeros(Point{2,Float64},length(tree))
-    t = Tree(nodes,mod,thread,ancestor,prelim,shift,change,positions,distance)
+    t = Tree(nodes,mod,thread,ancestor,prelim,shift,change,positions,nodesize)
     return t
 end
 
-function layout{T}(t::AbstractVector{T},distance=ones(length(t)))
-    tree = Tree(t, distance)
+function layout{T}(t::AbstractVector{T}, nodesize=ones(length(t)))
+    tree = Tree(t,nodesize)
     first_walk(1,tree)
     second_walk(1,-tree.prelim[1],0.0,tree)
     return tree.positions
@@ -64,7 +62,7 @@ function first_walk{T}(v::T,t::Tree)
     prelim = t.prelim
     mod = t.mod
     tree = t.nodes
-    distance = t.distance
+    nodesize = t.nodesize
     p = parent(v,t)
     if p != nothing
         index = find(x->(x==v),tree[p])[1]
@@ -73,7 +71,7 @@ function first_walk{T}(v::T,t::Tree)
     end
     if length(tree[v]) == 0
         if v != tree[p][1]
-          prelim[v] = prelim[tree[p][index-1]] + (distance[tree[p][index-1]])
+          prelim[v] = prelim[tree[p][index-1]] + (nodesize[tree[p][index-1]])
         else
           prelim[v] = 0
         end
@@ -87,7 +85,7 @@ function first_walk{T}(v::T,t::Tree)
         midpoint = (prelim[tree[v][1]] + prelim[tree[v][end]]) / 2
         if index > 1
             w = tree[p][index-1]
-            prelim[v] = prelim[w] + (distance[w]+1.0)
+            prelim[v] = prelim[w] + (nodesize[w]+1.0)
             mod[v] = prelim[v] - midpoint
         else
             prelim[v] = midpoint
@@ -102,7 +100,7 @@ function apportion{T}(v::T,defaultAncestor::T,t::Tree)
     mod = t.mod
     thread = t.thread
     p = parent(v,t)
-    distance = t.distance
+    nodesize = t.nodesize
     if p != nothing
         index = find(x->(x==v),tree[p])[1]
     else
@@ -123,7 +121,7 @@ function apportion{T}(v::T,defaultAncestor::T,t::Tree)
             v_out_left = next_left(v_out_left,t)
             v_out_right = next_right(v_out_right,t)
             ancestor[v_out_right] = v
-            shift = (prelim[v_in_left] + s_in_left) - (prelim[v_in_right] + s_in_right) + (distance[v_in_left])
+            shift = (prelim[v_in_left] + s_in_left) - (prelim[v_in_right] + s_in_right) + (nodesize[v_in_left])
             if shift > 0
                 move_subtree(find_ancestor(v_in_left,v,defaultAncestor,t),v,shift,t)
                 s_in_right += shift
@@ -174,10 +172,10 @@ function second_walk{T}(v::T,m::Float64,depth::Float64,t::Tree)
     prelim = t.prelim
     mod = t.mod
     positions = t.positions
-    distance = t.distance
+    nodesize = t.nodesize
     positions[v] = Point(prelim[v]+m,-depth)
     if length(t.nodes[v])!=0
-        maxdist = maximum([distance[i] for i in t.nodes[v]])
+        maxdist = maximum([nodesize[i] for i in t.nodes[v]])
     else
         maxdist = 0
     end
