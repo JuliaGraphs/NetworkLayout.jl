@@ -116,14 +116,14 @@ end
 
 function next(iter::Layout, state)
     newstress, oldstress, X0, i = state
-    δ, weights, pinvLw, positions = iter.δ, iter.weights, iter.pinvLw, iter.positions
+    δ, weights, pinvLw, positions, X0 = iter.δ, iter.weights, iter.pinvLw, iter.positions, copy(iter.positions)
     #TODO the faster way is to drop the first row and col from the iteration
     t = LZ(X0, δ, weights)
     positions = pinvLw * (t*X0)
     @assert all(x->all(map(isfinite, x)), positions)
     newstress, oldstress = stress(positions, δ, weights), newstress
     iter.positions[:] = positions
-    return iter, (newstress, oldstress, positions, (i+1))
+    return iter, (newstress, oldstress, X0, (i+1))
 end
 
 function done(iter::Layout, state)
