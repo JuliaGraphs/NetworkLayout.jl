@@ -40,7 +40,11 @@ function Tree{T}(tree::AbstractVector{T}, nodesize)
     return t
 end
 
-function layout{T}(t::AbstractVector{T}, nodesize=ones(length(t)))
+function layout{T}(t::AbstractVector{T}; nodesize=ones(length(t)))
+    layout!(t,nodesize)
+end
+
+function layout!{T}(t::AbstractVector{T}, nodesize)
     tree = Tree(t,nodesize)
     first_walk(1,tree)
     second_walk(1,-tree.prelim[1],0.0,tree)

@@ -39,7 +39,11 @@ function compute_laplacian{M<:AbstractMatrix}(adj_matrix::M, node_weights)
     L, D
 end
 
-function layout{M<:AbstractMatrix}(adj_matrix::M; node_weights = ones(eltype(M),size(adj_matrix,1)), kw...)
+function layout{M<:AbstractMatrix}(adj_matrix::M; node_weights  = ones(eltype(M),size(adj_matrix,1)), kw_args...)
+    layout!(adj_matrix,node_weights,kw_args...)
+end
+
+function layout!{M<:AbstractMatrix}(adj_matrix::M, node_weights, kw_args...)
     adj_matrix = make_symmetric(adj_matrix)
     L, D = compute_laplacian(adj_matrix, node_weights)
 

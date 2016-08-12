@@ -21,6 +21,10 @@ module Shell
 using GeometryTypes
 
 function layout{M<:AbstractMatrix}(adj_matrix::M, nlist::Union{Void, Vector{Vector{Int}}} = nothing)
+    layout!(adj_matrix,nlist)
+end
+
+function layout!{M<:AbstractMatrix}(adj_matrix::M, nlist::Union{Void, Vector{Vector{Int}}})
     if size(adj_matrix, 1) == 1
         return Point{2,Float64}[Point(0.0,0.0)]
     end

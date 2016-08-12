@@ -26,9 +26,9 @@ jagmesh_adj = jagmesh()
         println("SFDP")
         @testset "Testing Jagmesh1 graph" begin
             println("SFDP Jagmesh1")
-            positions = @time SFDP.layout(jagmesh_adj, Point2f0, tol=0.9, K=1, iterations=50)
+            positions = @time SFDP.layout(jagmesh_adj, Point2f0, tol=0.9, K=1, iterations=10)
             @test typeof(positions) == Vector{Point2f0}
-            positions = @time SFDP.layout(jagmesh_adj, Point3f0, tol=0.9, K=1, iterations=50)
+            positions = @time SFDP.layout(jagmesh_adj, Point3f0, tol=0.9, K=1, iterations=10)
             @test typeof(positions) == Vector{Point3f0}
         end
 
@@ -139,7 +139,7 @@ jagmesh_adj = jagmesh()
                 []
             ]
             nodesize = [1,2,1.5,3,0.5,1,1]
-            locs = @time Buchheim.layout(adj_list,nodesize)
+            locs = @time Buchheim.layout(adj_list,nodesize=nodesize)
             @test typeof(locs) == Vector{Point{2, Float64}}
         end
 

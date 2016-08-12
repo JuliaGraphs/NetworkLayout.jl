@@ -29,20 +29,29 @@ immutable Layout{M<:AbstractMatrix, P<:AbstractVector, T<:AbstractFloat}
 end
 
 function Layout{M,N,T}(
-        adj_matrix::M, start_position::AbstractArray{Point{N,T}};
+        adj_matrix::M, PT::Type{Point{N, T}}=Point{2, Float64};
+        startpositions=(2*rand(typ, size(adj_matrix,1)) .- 1),
         C=2.0, iterations=100, initialtemp=2.0
     )
-    Layout(adj_matrix, start_position, T(C), Int(iterations), T(initialtemp))
+    Layout(adj_matrix, startpositions, T(C), Int(iterations), T(initialtemp))
 end
 
 function layout{M,N,T}(
-        adj_matrix::M, typ::Type{Point{N, T}}=Point{2, Float64},
-        start_position = (2*rand(typ, size(adj_matrix,1)) .- 1);
+        adj_matrix::M, typ::Type{Point{N, T}}=Point{2, Float64};
+        startpositions = (2*rand(typ, size(adj_matrix,1)) .- 1),
+        kw_args...
+    )
+    layout!(adj_matrix,startpositions;kw_args...)
+end
+
+function layout!{M,N,T}(
+        adj_matrix::M,
+        startpositions::AbstractVector{Point{N,T}};
         kw_args...
     )
     size(adj_matrix, 1) != size(adj_matrix, 2) && error("Adj. matrix must be square.")
     # Layout object for the graph
-    network = Layout(adj_matrix,start_position; kw_args...)
+    network = Layout(adj_matrix, Point{N,T}; startpositions=startpositions, kw_args...)
     state = start(network)
     while !done(network,state)
         network,state = next(network,state)

@@ -20,6 +20,10 @@ module Circular
 using GeometryTypes
 
 function layout{M<:AbstractMatrix}(adj_matrix::M)
+    layout!(adj_matrix)
+end
+
+function layout!{M<:AbstractMatrix}(adj_matrix::M)
     if size(adj_matrix,1) == 1
         return Point{2,Float64}[Point(0.0,0.0)]
     else
