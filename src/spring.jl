@@ -36,6 +36,8 @@ function Layout{M,N,T}(
     Layout(adj_matrix, startpositions, T(C), Int(iterations), T(initialtemp))
 end
 
+layout(adj_matrix, dim::Int; kw_args...) = layout(adj_matrix, Point{dim,Float64}; kw_args...)
+
 function layout{M,N,T}(
         adj_matrix::M, typ::Type{Point{N, T}}=Point{2, Float64};
         startpositions = (2*rand(typ, size(adj_matrix,1)) .- 1),

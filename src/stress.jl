@@ -88,6 +88,7 @@ function Layout{N, T}(
     return Layout(δ, weights, startpositions, pinvLw, iterations, abstols, reltols, abstolx)
 end
 
+layout(δ, dim::Int; kw_args...) = layout(δ, Point{dim,Float64}; kw_args...)
 
 function layout{N, T}(
         δ, PT::Type{Point{N, T}}=Point{2, Float64};
