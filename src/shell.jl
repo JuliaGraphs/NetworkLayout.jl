@@ -20,7 +20,7 @@ module Shell
 
 using GeometryTypes
 
-function layout{M<:AbstractMatrix}(adj_matrix::M, nlist::Union{Void, Vector{Vector{Int}}} = nothing)
+function layout{M<:AbstractMatrix}(adj_matrix::M; nlist::Union{Void, Vector{Vector{Int}}} = nothing)
     layout!(adj_matrix,nlist)
 end
 
