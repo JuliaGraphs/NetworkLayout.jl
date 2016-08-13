@@ -314,5 +314,12 @@ network = layout(a,nlist=n) # generate 2D layout
 
 This figure shows a `LightGraphs.CompleteGraph(30)` object in 2 shells.
 
+## Benchmarks
+
+The iterative algorithms have been benchmarked using 3 different graphs: `LightGraphs.WheelGraph(10)`, `LightGraphs.WheelGraph(100)` and `jagmesh1`. The number of iterations is fixed on 100. The following graph is obtained which shows SFDP to be the fastest in a general scenario, but Stress Algorithm is faster when the number of edges per graph is comparatively less, as in `jagmesh1`.
+
+![bench](https://cloud.githubusercontent.com/assets/8404278/17642254/fd6f1718-615b-11e6-9a30-8c1a362aead7.png)
+
+
 
 *NOTE* : All screenshots are generated using [NetworkViz.jl](https://github.com/abhijithanilkumar/NetworkViz.jl), [ThreeJS.jl](https://github.com/rohitvarkey/ThreeJS.jl) and [Escher.jl](https://github.com/shashi/Escher.jlhttps://github.com/rohitvarkey/ThreeJS.jl). The plot used is generated using [Gadfly.jl](https://github.com/dcjones/Gadfly.jl)
