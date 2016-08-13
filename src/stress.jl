@@ -13,18 +13,18 @@ Inputs:
 Additional optional keyword arguments control the convergence of the algorithm
 and the additional output as requested:
 
-    maxiter:   Maximum number of iterations. Default: 400size(X0, 1)^2
-    abstols:   Absolute tolerance for convergence of stress.
-               The iterations terminate if the difference between two
-               successive stresses is less than abstol.
-               Default: √(eps(eltype(X0))
-    reltols:   Relative tolerance for convergence of stress.
-               The iterations terminate if the difference between two
-               successive stresses relative to the current stress is less than
-               reltol. Default: √(eps(eltype(X0))
-    abstolx:   Absolute tolerance for convergence of layout.
-               The iterations terminate if the Frobenius norm of two successive
-               layouts is less than abstolx. Default: √(eps(eltype(X0))
+    iterations:   Maximum number of iterations. Default: 400size(X0, 1)^2
+    abstols:      Absolute tolerance for convergence of stress.
+                  The iterations terminate if the difference between two
+                  successive stresses is less than abstol.
+                  Default: √(eps(eltype(X0))
+    reltols:      Relative tolerance for convergence of stress.
+                  The iterations terminate if the difference between two
+                  successive stresses relative to the current stress is less than
+                  reltol. Default: √(eps(eltype(X0))
+    abstolx:      Absolute tolerance for convergence of layout.
+                  The iterations terminate if the Frobenius norm of two successive
+                  layouts is less than abstolx. Default: √(eps(eltype(X0))
 
 Output:
 
@@ -56,12 +56,13 @@ import Base: start, next, done, *
 function (*){T<:LinAlg.BlasFloat,S<:FixedArray}(A::StridedMatrix{T}, x::StridedVector{S})
     A_mul_B!(similar(x, S, size(A,1)), A, x)
 end
+
 immutable Layout{M1<:AbstractMatrix, M2<:AbstractMatrix, VP<:AbstractVector,FT<:AbstractFloat}
     δ::M1
     weights::M2
     positions::VP
     pinvLw::Matrix{FT}
-    maxiter::Int
+    iterations::Int
     abstols::FT
     reltols::FT
     abstolx::FT
@@ -87,6 +88,7 @@ function Layout{N, T}(
     return Layout(δ, weights, startpositions, pinvLw, iterations, abstols, reltols, abstolx)
 end
 
+layout(δ, dim::Int; kw_args...) = layout(δ, Point{dim,Float64}; kw_args...)
 
 function layout{N, T}(
         δ, PT::Type{Point{N, T}}=Point{2, Float64};
@@ -115,24 +117,24 @@ end
 
 function next(iter::Layout, state)
     newstress, oldstress, X0, i = state
-    δ, weights, pinvLw, positions = iter.δ, iter.weights, iter.pinvLw, iter.positions
+    δ, weights, pinvLw, positions, X0 = iter.δ, iter.weights, iter.pinvLw, iter.positions, copy(iter.positions)
     #TODO the faster way is to drop the first row and col from the iteration
     t = LZ(X0, δ, weights)
     positions = pinvLw * (t*X0)
     @assert all(x->all(map(isfinite, x)), positions)
     newstress, oldstress = stress(positions, δ, weights), newstress
     iter.positions[:] = positions
-    return iter, (newstress, oldstress, positions, (i+1))
+    return iter, (newstress, oldstress, X0, (i+1))
 end
 
 function done(iter::Layout, state)
     newstress, oldstress, X0, i = state
-    maxiter, reltols = iter.maxiter, iter.reltols
+    iterations, reltols = iter.iterations, iter.reltols
     positions, abstols, abstolx = iter.positions, iter.abstols, iter.abstolx
-    (i == 0) && (i<maxiter) && return false #special case 0th iteration
+    (i == 0) && (i<iterations) && return false #special case 0th iteration
 
     return (
-        i > maxiter ||
+        i > iterations ||
         abs(newstress - oldstress) < reltols * newstress ||
         abs(newstress - oldstress) < abstols ||
         vecnorm(positions - X0) < abstolx

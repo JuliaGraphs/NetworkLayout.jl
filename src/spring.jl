@@ -1,7 +1,3 @@
-module Spring
-using GeometryTypes
-export Layout, layout
-
 """
     Use the spring/repulsion model of Fruchterman and Reingold (1991):
         Attractive force:  f_a(d) =  d^2 / k
@@ -11,40 +7,53 @@ export Layout, layout
     where C is a parameter we can adjust
 
     Arguments:
-    adj_matrix Adjacency matrix of some type. Non-zero of the eltype
-               of the matrix is used to determine if a link exists,
-               but currently no sense of magnitude
-    C          Constant to fiddle with density of resulting layout
-    MAXITER    Number of iterations we apply the forces
-    INITTEMP   Initial "temperature", controls movement per iteration
+    adj_matrix    Adjacency matrix of some type. Non-zero of the eltype
+                  of the matrix is used to determine if a link exists,
+                  but currently no sense of magnitude
+    C             Constant to fiddle with density of resulting layout
+    iterations    Number of iterations we apply the forces
+    initialtemp   Initial "temperature", controls movement per iteration
 """
 
-immutable Layout{A,P,F}
-  adj_matrix::A
+module Spring
+
+using GeometryTypes
+import Base: start, next, done
+
+immutable Layout{M<:AbstractMatrix, P<:AbstractVector, T<:AbstractFloat}
+  adj_matrix::M
   positions::P
-  force::F
-  C
-  MAXITER
-  INITTEMP
+  C::T
+  iterations::Int
+  initialtemp::T
 end
 
-function Layout(adj_matrix,locs,C,MAXITER,INITTEMP)
-    # Store forces and apply at end of iteration all at once
-    N = size(adj_matrix, 1)
-    F = eltype(locs)
-    force = zeros(F,N)
-    # Layout object for the graph
-    return Layout(adj_matrix,locs,force,C,MAXITER,INITTEMP)
+function Layout{M,N,T}(
+        adj_matrix::M, PT::Type{Point{N, T}}=Point{2, Float64};
+        startpositions=(2*rand(typ, size(adj_matrix,1)) .- 1),
+        C=2.0, iterations=100, initialtemp=2.0
+    )
+    Layout(adj_matrix, startpositions, T(C), Int(iterations), T(initialtemp))
 end
 
-function layout{T}(
-        adj_matrix::T, dim::Int,
-        locs = (2*rand(Point{dim, Float64}, size(adj_matrix,1)) .- 1);
-        C=2.0, MAXITER=100, INITTEMP=2.0
+layout(adj_matrix, dim::Int; kw_args...) = layout(adj_matrix, Point{dim,Float64}; kw_args...)
+
+function layout{M,N,T}(
+        adj_matrix::M, typ::Type{Point{N, T}}=Point{2, Float64};
+        startpositions = (2*rand(typ, size(adj_matrix,1)) .- 1),
+        kw_args...
+    )
+    layout!(adj_matrix,startpositions;kw_args...)
+end
+
+function layout!{M,N,T}(
+        adj_matrix::M,
+        startpositions::AbstractVector{Point{N,T}};
+        kw_args...
     )
     size(adj_matrix, 1) != size(adj_matrix, 2) && error("Adj. matrix must be square.")
     # Layout object for the graph
-    network = Layout(adj_matrix,locs,C,MAXITER,INITTEMP)
+    network = Layout(adj_matrix, Point{N,T}; startpositions=startpositions, kw_args...)
     state = start(network)
     while !done(network,state)
         network,state = next(network,state)
@@ -52,25 +61,26 @@ function layout{T}(
     return network.positions
 end
 
-Base.start(::Layout) = 1
+start(::Layout) = 1
 
-function Base.next(network::Layout, state)
+function next(network::Layout, state)
     iter = layout_iterator!(network, state)
     return network, iter
 end
 
-Base.done(network::Layout,state) = (state == network.MAXITER)
+done(network::Layout,state) = (state == network.iterations)
 
-function layout_iterator!{A,P,F}(network::Layout{A,P,F}, iter)
+function layout_iterator!{M,P,T}(network::Layout{M,P,T}, iter)
     # The optimal distance bewteen vertices
     adj_matrix = network.adj_matrix
-    force = network.force
+    N = size(adj_matrix,1)
+    force = zeros(eltype(P),N)
     locs = network.positions
     C = network.C
-    MAXITER = network.MAXITER
-    INITTEMP = network.INITTEMP
+    iterations = network.iterations
+    initialtemp = network.initialtemp
     N = size(adj_matrix,1)
-    Ftype = eltype(F)
+    Ftype = eltype(force)
     K = C * sqrt(4.0 / N)
 
     # Calculate forces
@@ -97,7 +107,7 @@ function layout_iterator!{A,P,F}(network::Layout{A,P,F}, iter)
         force[i] = force_vec
     end
     # Cool down
-    TEMP = INITTEMP / iter
+    TEMP = initialtemp / iter
     # Now apply them, but limit to temperature
     for i = 1:N
         force_mag  = norm(force[i])

@@ -1,12 +1,8 @@
-module Shell
-
-using GeometryTypes
-export layout
 """
 This function is copy from [IainNZ](https://github.com/IainNZ)'s [GraphLayout.jl](https://github.com/IainNZ/GraphLayout.jl)
 Position nodes in concentric circles.
 **Parameters**
-*G*
+*adj_matrix*
 a graph
 *nlist*
 Vector of Vector, Vector of node Vector for each shell.
@@ -19,13 +15,22 @@ julia> nlist[2] = [6:num_vertiecs(g)]
 julia> locs_x, locs_y = shell_layout(g, nlist)
 ```
 """
-function layout(G, nlist::Union{Void, Vector{Vector{Int}}} = nothing)
-    if size(G, 1) == 1
+
+module Shell
+
+using GeometryTypes
+
+function layout{M<:AbstractMatrix}(adj_matrix::M; nlist::Union{Void, Vector{Vector{Int}}} = nothing)
+    layout!(adj_matrix,nlist)
+end
+
+function layout!{M<:AbstractMatrix}(adj_matrix::M, nlist::Union{Void, Vector{Vector{Int}}})
+    if size(adj_matrix, 1) == 1
         return Point{2,Float64}[Point(0.0,0.0)]
     end
     if nlist == nothing
         nlist = Array(Vector{Int}, 1)
-        nlist[1] = collect(1:size(G,1))
+        nlist[1] = collect(1:size(adj_matrix,1))
     end
     radius = 0.0
     if length(nlist[1]) > 1

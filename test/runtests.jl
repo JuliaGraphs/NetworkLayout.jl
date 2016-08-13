@@ -9,6 +9,7 @@ using LightGraphs
 using BaseTestNext
 using GeometryTypes
 
+
 function jagmesh()
     jagmesh_path = joinpath(dirname(@__FILE__), "jagmesh1.mtx")
     array = round(Int, open(readdlm, jagmesh_path))
@@ -24,20 +25,21 @@ jagmesh_adj = jagmesh()
     @testset "Testing SFDP" begin
         println("SFDP")
         @testset "Testing Jagmesh1 graph" begin
-            positions = @time SFDP.layout(jagmesh_adj, 2, tol=0.9, K=1)
-            @test typeof(positions) == Vector{Point{2, Float64}}
-            positions = @time SFDP.layout(jagmesh_adj, 3, tol=0.9, K=1)
-            @test typeof(positions) == Vector{Point{3, Float64}}
+            println("SFDP Jagmesh1")
+            positions = @time SFDP.layout(jagmesh_adj, Point2f0, tol=0.9, K=1, iterations=10)
+            @test typeof(positions) == Vector{Point2f0}
+            positions = @time SFDP.layout(jagmesh_adj, Point3f0, tol=0.9, K=1, iterations=10)
+            @test typeof(positions) == Vector{Point3f0}
         end
 
         @testset "Testing WheelGraph" begin
-            println("Wheelgraph")
+            println("SFDP Wheelgraph")
             g = WheelGraph(10)
             adj_matrix = adjacency_matrix(g)
-            positions = @time SFDP.layout(adj_matrix, 2, tol=0.1, K=1)
-            @test typeof(positions) == Vector{Point{2, Float64}}
-            positions = @time SFDP.layout(adj_matrix, 3, tol=0.1, K=1)
-            @test typeof(positions) == Vector{Point{3, Float64}}
+            positions = @time SFDP.layout(adj_matrix, Point2f0, tol=0.1, K=1)
+            @test typeof(positions) == Vector{Point2f0}
+            positions = @time SFDP.layout(adj_matrix, Point3f0, tol=0.1, K=1)
+            @test typeof(positions) == Vector{Point3f0}
         end
 
     end
@@ -46,10 +48,11 @@ jagmesh_adj = jagmesh()
     println("Stress")
 
     @testset "Testing Jagmesh1 graph" begin
-        positions = @time Stress.layout(jagmesh_adj, Point2{Float64}, iterations=10)
-        @test typeof(positions) == Vector{Point{2, Float64}}
+        println("Stress Jagmesh1")
+        positions = @time Stress.layout(jagmesh_adj, Point2f0, iterations=10)
+        @test typeof(positions) == Vector{Point2f0}
         positions = @time Stress.layout(jagmesh_adj, Point3f0, iterations=10)
-        @test typeof(positions) == Vector{Point{3, Float32}}
+        @test typeof(positions) == Vector{Point3f0}
     end
 
     @testset "Testing WheelGraph" begin
@@ -58,8 +61,8 @@ jagmesh_adj = jagmesh()
         adj_matrix = adjacency_matrix(g)
         positions = @time Stress.layout(adj_matrix, Point2f0, iterations=10)
         @test typeof(positions) == Vector{Point2f0}
-        positions = @time Stress.layout(adj_matrix, Point{3, Float64}, iterations=10)
-        @test typeof(positions) == Vector{Point{3, Float64}}
+        positions = @time Stress.layout(adj_matrix, Point3f0, iterations=10)
+        @test typeof(positions) == Vector{Point3f0}
     end
 
     end
@@ -69,10 +72,10 @@ jagmesh_adj = jagmesh()
         @testset "Testing WheelGraph" begin
             g = WheelGraph(10)
             adj_matrix = adjacency_matrix(g)
-            positions = @time Spring.layout(adj_matrix, 2, C=2.0, MAXITER=100, INITTEMP=2.0)
-            @test typeof(positions) == Vector{Point{2, Float64}}
-            positions = @time Spring.layout(adj_matrix, 3, C=2.0, MAXITER=100, INITTEMP=2.0)
-            @test typeof(positions) == Vector{Point{3, Float64}}
+            positions = @time Spring.layout(adj_matrix, Point2f0, C=2.0, iterations=100, initialtemp=2.0)
+            @test typeof(positions) == Vector{Point2f0}
+            positions = @time Spring.layout(adj_matrix, Point3f0, C=2.0, iterations=100, initialtemp=2.0)
+            @test typeof(positions) == Vector{Point3f0}
         end
 
     end
@@ -95,6 +98,12 @@ jagmesh_adj = jagmesh()
           positions = @time Circular.layout(adj_matrix)
           @test typeof(positions) == Vector{Point{2, Float64}}
         end
+        @testset "Testing Base Case" begin
+          g = Graph(1)
+          adj_matrix = adjacency_matrix(g)
+          positions = @time Circular.layout(adj_matrix)
+          @test typeof(positions) == Vector{Point{2, Float64}}
+        end
 
     end
 
@@ -107,12 +116,19 @@ jagmesh_adj = jagmesh()
             positions = @time Shell.layout(adj_matrix)
             @test typeof(positions) == Vector{Point{2, Float64}}
         end
+        @testset "Testing Base Case" begin
+            g = Graph(1)
+            adj_matrix = adjacency_matrix(g)
+            positions = @time Shell.layout(adj_matrix)
+            @test typeof(positions) == Vector{Point{2, Float64}}
+        end
     end
 
     @testset "Testing Buchheim Tree Drawing" begin
-        println("Buchheim Buchheim")
+        println("Buchheim")
 
         @testset "Test a Random tree" begin
+            println("Buchheim Random")
             adj_list = Vector{Int}[
                 [2,3,4],
                 [5,6],
@@ -123,11 +139,12 @@ jagmesh_adj = jagmesh()
                 []
             ]
             nodesize = [1,2,1.5,3,0.5,1,1]
-            locs = @time Buchheim.layout(adj_list,nodesize)
+            locs = @time Buchheim.layout(adj_list,nodesize=nodesize)
             @test typeof(locs) == Vector{Point{2, Float64}}
         end
 
         @testset "Test a Binary tree" begin
+          println("Buchheim BinaryTree")
           g = BinaryTree(10)
           n = Vector{Int32}[]
           a = adjacency_matrix(g)

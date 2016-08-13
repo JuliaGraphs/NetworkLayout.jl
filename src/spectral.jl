@@ -1,36 +1,3 @@
-module Spectral
-
-using GeometryTypes
-export layout
-
-function make_symmetric(A)
-    A = copy(A)
-    for i=1:size(A,1), j=i+1:size(A,2)
-        A[i,j] = A[j,i] = A[i,j]+A[j,i]
-    end
-    A
-end
-
-function compute_laplacian(adjmat, node_weights)
-    n, m = size(adjmat)
-    # @show size(adjmat), size(node_weights)
-    @assert n == m == length(node_weights)
-
-    # scale the edge values by the product of node_weights, so that "heavier" nodes also form
-    # stronger connections
-    adjmat = adjmat .* sqrt(node_weights * node_weights')
-
-    # D is a diagonal matrix with the degrees (total weights for that node) on the diagonal
-    deg = vec(sum(adjmat,1)) - diag(adjmat)
-    D = diagm(deg)
-    T = eltype(node_weights)
-    # Laplacian (L = D - adjmat)
-    L = T[i == j ? deg[i] : -adjmat[i,j] for i=1:n,j=1:n]
-
-    L, D
-end
-
-
 # -----------------------------------------------------
 # -----------------------------------------------------
 
@@ -40,9 +7,45 @@ end
 # this recipe uses the technique of Spectral Graph Drawing, which is an
 # under-appreciated method of graph layouts; easier, simpler, and faster
 # than the more common spring-based methods.
-function layout{T}(adjmat::T; node_weights = ones(eltype(T),size(adjmat,1)), kw...)
-    adjmat = make_symmetric(adjmat)
-    L, D = compute_laplacian(adjmat, node_weights)
+
+module Spectral
+
+using GeometryTypes
+
+function make_symmetric{M<:AbstractMatrix}(adj_matrix::M)
+    adj_matrix = copy(adj_matrix)
+    for i=1:size(adj_matrix,1), j=i+1:size(adj_matrix,2)
+        adj_matrix[i,j] = adj_matrix[j,i] = adj_matrix[i,j]+adj_matrix[j,i]
+    end
+    adj_matrix
+end
+
+function compute_laplacian{M<:AbstractMatrix}(adj_matrix::M, node_weights)
+    n, m = size(adj_matrix)
+    # @show size(adj_matrix), size(node_weights)
+    @assert n == m == length(node_weights)
+
+    # scale the edge values by the product of node_weights, so that "heavier" nodes also form
+    # stronger connections
+    adj_matrix = adj_matrix .* sqrt(node_weights * node_weights')
+
+    # D is a diagonal matrix with the degrees (total weights for that node) on the diagonal
+    deg = vec(sum(adj_matrix,1)) - diag(adj_matrix)
+    D = diagm(deg)
+    T = eltype(node_weights)
+    # Laplacian (L = D - adj_matrix)
+    L = T[i == j ? deg[i] : -adj_matrix[i,j] for i=1:n,j=1:n]
+
+    L, D
+end
+
+function layout{M<:AbstractMatrix}(adj_matrix::M; node_weights  = ones(eltype(M),size(adj_matrix,1)), kw_args...)
+    layout!(adj_matrix,node_weights,kw_args...)
+end
+
+function layout!{M<:AbstractMatrix}(adj_matrix::M, node_weights, kw_args...)
+    adj_matrix = make_symmetric(adj_matrix)
+    L, D = compute_laplacian(adj_matrix, node_weights)
 
     # get the matrix of eigenvectors
     v = eig(L, D)[2]
