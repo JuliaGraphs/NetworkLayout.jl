@@ -19,7 +19,7 @@ immutable Tree{A<:AbstractVector,P<:AbstractVector,F}
     nodes::A
     mod::F
     thread::F
-    ancestor::Array{Int,1}
+    ancestor::Vector{Int}
     prelim::F
     shift::F
     change::F
@@ -27,27 +27,28 @@ immutable Tree{A<:AbstractVector,P<:AbstractVector,F}
     nodesize::F
 end
 
-function Tree{T}(tree::AbstractVector{T}, nodesize)
-    mod = zeros(length(tree))
-    thread = zeros(length(tree))
-    prelim = zeros(length(tree))
-    shift = zeros(length(tree))
-    change = zeros(length(tree))
+function Tree{T, F}(tree::AbstractVector{T}, nodesize::Vector{F}, positions)
+    mod = zeros(F, length(tree))
+    thread = zeros(F, length(tree))
+    prelim = zeros(F, length(tree))
+    shift = zeros(F, length(tree))
+    change = zeros(F, length(tree))
     ancestor = [i for i in 1:length(tree)]
     nodes = copy(tree)
-    positions = zeros(Point{2,Float64},length(tree))
+
     t = Tree(nodes,mod,thread,ancestor,prelim,shift,change,positions,nodesize)
     return t
 end
 
-function layout{T}(t::AbstractVector{T}; nodesize=ones(length(t)))
-    layout!(t,nodesize)
+function layout{T}(tree::AbstractVector{T}, PT = Point{2, Float64}; nodesize=ones(length(t)))
+    positions = zeros(PT, length(tree))
+    layout!(tree, nodesize, positions)
 end
 
-function layout!{T}(t::AbstractVector{T}, nodesize)
-    tree = Tree(t,nodesize)
+function layout!{T, FT}(t::AbstractVector{T}, nodesize::Vector{FT}, positions)
+    tree = Tree(t,nodesize, positions)
     first_walk(1,tree)
-    second_walk(1,-tree.prelim[1],0.0,tree)
+    second_walk(1, -tree.prelim[1], FT(0.0), tree)
     return tree.positions
 end
 
@@ -156,7 +157,7 @@ function number{T}(v::T,t::Tree)
     return index
 end
 
-function move_subtree{T}(w_left::T,w_right::T,shift::Float64,t::Tree)
+function move_subtree{T, FT}(w_left::T,w_right::T,shift::FT,t::Tree)
     change = t.change
     prelim = t.prelim
     tree = t.nodes
@@ -172,7 +173,7 @@ function move_subtree{T}(w_left::T,w_right::T,shift::Float64,t::Tree)
     mod[w_right] += shift
 end
 
-function second_walk{T}(v::T,m::Float64,depth::Float64,t::Tree)
+function second_walk{T, FT}(v::T,m::FT,depth::FT,t::Tree)
     prelim = t.prelim
     mod = t.mod
     positions = t.positions
@@ -184,7 +185,7 @@ function second_walk{T}(v::T,m::Float64,depth::Float64,t::Tree)
         maxdist = 0
     end
     for w in t.nodes[v]
-        second_walk(w,m+mod[v],Float64(depth+1+maxdist),t)
+        second_walk(w,m+mod[v],FT(depth+1+maxdist),t)
     end
 end
 
