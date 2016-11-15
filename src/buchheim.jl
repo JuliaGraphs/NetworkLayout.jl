@@ -219,7 +219,7 @@ function next_left{T}(v::T,t::Tree)
     if length(tree[v]) != 0
         return tree[v][1]
     else
-        return thread[v]
+        return round(Int, thread[v])
     end
 end
 
@@ -229,7 +229,7 @@ function next_right{T}(v::T,t::Tree)
     if length(tree[v]) != 0
         return tree[v][end]
     else
-        return thread[v]
+        return round(Int, thread[v])
     end
 end
 
