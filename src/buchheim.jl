@@ -18,8 +18,8 @@ using GeometryTypes
 immutable Tree{A<:AbstractVector,P<:AbstractVector,F}
     nodes::A
     mod::F
-    thread::F
-    ancestor::Array{Int,1}
+    thread::Vector{Int}
+    ancestor::Vector{Int}
     prelim::F
     shift::F
     change::F
@@ -29,7 +29,7 @@ end
 
 function Tree{T}(tree::AbstractVector{T}, nodesize)
     mod = zeros(length(tree))
-    thread = zeros(length(tree))
+    thread = zeros(Int,length(tree))
     prelim = zeros(length(tree))
     shift = zeros(length(tree))
     change = zeros(length(tree))
