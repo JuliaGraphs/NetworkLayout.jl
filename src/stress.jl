@@ -50,10 +50,10 @@ Reference:
 """
 module Stress
 
-using GeometryTypes, Compat, FixedSizeArrays
+using GeometryTypes, Compat, StaticArrays
 import Base: start, next, done, *
 
-function (*){T<:LinAlg.BlasFloat,S<:FixedArray}(A::StridedMatrix{T}, x::StridedVector{S})
+function (*){T<:LinAlg.BlasFloat,S<:StaticArray}(A::StridedMatrix{T}, x::StridedVector{S})
     A_mul_B!(similar(x, S, size(A,1)), A, x)
 end
 
@@ -78,7 +78,7 @@ end
 
 function Layout{N, T}(
         δ, PT::Type{Point{N, T}}=Point{2, Float64};
-        startpositions=rand(PT, size(δ,1)), weights=initialweights(δ, T),
+        startpositions=rand(PT, size(δ,1)), weights=initialweights(δ, Float64),
         iterations=400*size(δ,1)^2, abstols=√(eps(T)),
         reltols=√(eps(T)), abstolx=√(eps(T))
     )

@@ -29,7 +29,7 @@ function layout!{M<:AbstractMatrix}(adj_matrix::M, nlist::Union{Void, Vector{Vec
         return Point{2,Float64}[Point(0.0,0.0)]
     end
     if nlist == nothing
-        nlist = Array(Vector{Int}, 1)
+        nlist = Array{Vector{Int}}(1)
         nlist[1] = collect(1:size(adj_matrix,1))
     end
     radius = 0.0
