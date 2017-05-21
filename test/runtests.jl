@@ -151,8 +151,8 @@ jagmesh_adj = jagmesh()
           for i in 1:size(a,1)
              p = Int32[]
              for e in collect(edges(g))
-                 if e.src == i
-                     push!(p,e.dst)
+                 if src(e) == i
+                     push!(p,dst(e))
                  end
              end
              push!(n,p)
