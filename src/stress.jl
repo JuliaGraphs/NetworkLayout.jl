@@ -57,11 +57,11 @@ function (*){T<:LinAlg.BlasFloat,S<:StaticArray}(A::StridedMatrix{T}, x::Strided
     A_mul_B!(similar(x, S, size(A,1)), A, x)
 end
 
-immutable Layout{M1<:AbstractMatrix, M2<:AbstractMatrix, VP<:AbstractVector,FT<:AbstractFloat}
+immutable Layout{M1<:AbstractMatrix, M2<:AbstractMatrix, VP<:AbstractVector, FT<:AbstractFloat}
     δ::M1
     weights::M2
     positions::VP
-    pinvLw::Matrix{FT}
+    pinvLw::Matrix{Float64}
     iterations::Int
     abstols::FT
     reltols::FT
@@ -69,16 +69,16 @@ immutable Layout{M1<:AbstractMatrix, M2<:AbstractMatrix, VP<:AbstractVector,FT<:
 end
 
 
-function initialweights(D, T=eltype(D))
+function initialweights(D)
     map(D) do d
-        x = T(d^(-2.0))
-        isfinite(x) ? x : zero(T)
+        x = Float64(d^(-2.0))
+        isfinite(x) ? x : zero(Float64)
     end
 end
 
 function Layout{N, T}(
         δ, PT::Type{Point{N, T}}=Point{2, Float64};
-        startpositions=rand(PT, size(δ,1)), weights=initialweights(δ, Float64),
+        startpositions=rand(PT, size(δ,1)), weights=initialweights(δ),
         iterations=400*size(δ,1)^2, abstols=√(eps(T)),
         reltols=√(eps(T)), abstolx=√(eps(T))
     )
