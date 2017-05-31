@@ -61,7 +61,7 @@ immutable Layout{M1<:AbstractMatrix, M2<:AbstractMatrix, VP<:AbstractVector, FT<
     δ::M1
     weights::M2
     positions::VP
-    pinvLw::Matrix{Float64}
+    pinvLw::Matrix{FT}
     iterations::Int
     abstols::FT
     reltols::FT
@@ -69,16 +69,16 @@ immutable Layout{M1<:AbstractMatrix, M2<:AbstractMatrix, VP<:AbstractVector, FT<
 end
 
 
-function initialweights(D)
+function initialweights(D, T=Float64)::SparseMatrixCSC{T,Int64}
     map(D) do d
-        x = Float64(d^(-2.0))
-        isfinite(x) ? x : zero(Float64)
+        x = T(d^(-2.0))
+        isfinite(x) ? x : zero(T)
     end
 end
 
 function Layout{N, T}(
         δ, PT::Type{Point{N, T}}=Point{2, Float64};
-        startpositions=rand(PT, size(δ,1)), weights=initialweights(δ),
+        startpositions=rand(PT, size(δ,1)), weights=initialweights(δ,T),
         iterations=400*size(δ,1)^2, abstols=√(eps(T)),
         reltols=√(eps(T)), abstolx=√(eps(T))
     )
