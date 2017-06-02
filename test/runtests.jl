@@ -12,7 +12,7 @@ using GeometryTypes
 
 function jagmesh()
     jagmesh_path = joinpath(dirname(@__FILE__), "jagmesh1.mtx")
-    array = round(Int, open(readdlm, jagmesh_path))
+    array = round.(Int, open(readdlm, jagmesh_path))
     row = array[:,1]
     col = array[:,2]
     entry = [(1:3600)...]
@@ -151,8 +151,8 @@ jagmesh_adj = jagmesh()
           for i in 1:size(a,1)
              p = Int32[]
              for e in collect(edges(g))
-                 if e[1] == i
-                     push!(p,e[2])
+                 if src(e) == i
+                     push!(p,dst(e))
                  end
              end
              push!(n,p)

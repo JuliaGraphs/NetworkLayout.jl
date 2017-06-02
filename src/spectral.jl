@@ -27,7 +27,7 @@ function compute_laplacian{M<:AbstractMatrix}(adj_matrix::M, node_weights)
 
     # scale the edge values by the product of node_weights, so that "heavier" nodes also form
     # stronger connections
-    adj_matrix = adj_matrix .* sqrt(node_weights * node_weights')
+    adj_matrix = adj_matrix .* sqrt.(node_weights * node_weights')
 
     # D is a diagonal matrix with the degrees (total weights for that node) on the diagonal
     deg = vec(sum(adj_matrix,1)) - diag(adj_matrix)
