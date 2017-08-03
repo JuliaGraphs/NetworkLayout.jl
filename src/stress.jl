@@ -51,11 +51,7 @@ Reference:
 module Stress
 
 using GeometryTypes, Compat, StaticArrays
-import Base: start, next, done, *
-
-function (*){T<:LinAlg.BlasFloat,S<:StaticArray}(A::StridedMatrix{T}, x::StridedVector{S})
-    A_mul_B!(similar(x, S, size(A,1)), A, x)
-end
+import Base: start, next, done
 
 immutable Layout{M1<:AbstractMatrix, M2<:AbstractMatrix, VP<:AbstractVector, FT<:AbstractFloat}
     δ::M1
