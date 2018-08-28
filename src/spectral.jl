@@ -11,8 +11,9 @@
 module Spectral
 
 using GeometryTypes
+using LinearAlgebra: diag, eigen, Diagonal
 
-function make_symmetric{M<:AbstractMatrix}(adj_matrix::M)
+function make_symmetric(adj_matrix::AbstractMatrix)
     adj_matrix = copy(adj_matrix)
     for i=1:size(adj_matrix,1), j=i+1:size(adj_matrix,2)
         adj_matrix[i,j] = adj_matrix[j,i] = adj_matrix[i,j]+adj_matrix[j,i]
@@ -20,7 +21,7 @@ function make_symmetric{M<:AbstractMatrix}(adj_matrix::M)
     adj_matrix
 end
 
-function compute_laplacian{M<:AbstractMatrix}(adj_matrix::M, node_weights)
+function compute_laplacian(adj_matrix, node_weights)
     n, m = size(adj_matrix)
     # @show size(adj_matrix), size(node_weights)
     @assert n == m == length(node_weights)
@@ -30,8 +31,8 @@ function compute_laplacian{M<:AbstractMatrix}(adj_matrix::M, node_weights)
     adj_matrix = adj_matrix .* sqrt.(node_weights * node_weights')
 
     # D is a diagonal matrix with the degrees (total weights for that node) on the diagonal
-    deg = vec(sum(adj_matrix,1)) - diag(adj_matrix)
-    D = diagm(deg)
+    deg = vec(sum(adj_matrix, dims=1)) - diag(adj_matrix)
+    D = Matrix(Diagonal(deg))
     T = eltype(node_weights)
     # Laplacian (L = D - adj_matrix)
     L = T[i == j ? deg[i] : -adj_matrix[i,j] for i=1:n,j=1:n]
@@ -39,16 +40,21 @@ function compute_laplacian{M<:AbstractMatrix}(adj_matrix::M, node_weights)
     L, D
 end
 
-function layout{M<:AbstractMatrix}(adj_matrix::M; node_weights  = ones(eltype(M),size(adj_matrix,1)), kw_args...)
+function layout(
+            adj_matrix::M;
+            node_weights=ones(eltype(M),
+            size(adj_matrix,1)),
+            kw_args...
+        ) where {M<:AbstractMatrix}
     layout!(adj_matrix,node_weights,kw_args...)
 end
 
-function layout!{M<:AbstractMatrix}(adj_matrix::M, node_weights, kw_args...)
+function layout!(adj_matrix, node_weights, kw_args...)
     adj_matrix = make_symmetric(adj_matrix)
     L, D = compute_laplacian(adj_matrix, node_weights)
 
     # get the matrix of eigenvectors
-    v = eig(L, D)[2]
+    v = eigen(L, D).vectors
     # x, y, and z are the 2nd through 4th eigenvectors of the solution to the
     # generalized eigenvalue problem Lv = λDv
     Point{3, Float64}[(v[2, i], v[3, i], v[4, i]) for i in 1:size(v,2)]

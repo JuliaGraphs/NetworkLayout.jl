@@ -14,13 +14,12 @@
     iterations    Number of iterations we apply the forces
     initialtemp   Initial "temperature", controls movement per iteration
 """
-
 module Spring
 
 using GeometryTypes
-import Base: start, next, done
+using LinearAlgebra: norm
 
-immutable Layout{M<:AbstractMatrix, P<:AbstractVector, T<:AbstractFloat}
+struct Layout{M<:AbstractMatrix, P<:AbstractVector, T<:AbstractFloat}
   adj_matrix::M
   positions::P
   C::T
@@ -28,53 +27,51 @@ immutable Layout{M<:AbstractMatrix, P<:AbstractVector, T<:AbstractFloat}
   initialtemp::T
 end
 
-function Layout{M,N,T}(
-        adj_matrix::M, PT::Type{Point{N, T}}=Point{2, Float64};
+function Layout(
+        adj_matrix,
+        PT::Type{Point{N,T}}=Point{2, Float64};
         startpositions=(2*rand(typ, size(adj_matrix,1)) .- 1),
         C=2.0, iterations=100, initialtemp=2.0
-    )
+    ) where {N, T}
     Layout(adj_matrix, startpositions, T(C), Int(iterations), T(initialtemp))
 end
 
 layout(adj_matrix, dim::Int; kw_args...) = layout(adj_matrix, Point{dim,Float64}; kw_args...)
 
-function layout{M,N,T}(
-        adj_matrix::M, typ::Type{Point{N, T}}=Point{2, Float64};
+function layout(
+        adj_matrix, typ::Type{Point{N,T}}=Point{2, Float64};
         startpositions = (2*rand(typ, size(adj_matrix,1)) .- 1),
         kw_args...
-    )
+    ) where {N, T}
     layout!(adj_matrix,startpositions;kw_args...)
 end
 
-function layout!{M,N,T}(
-        adj_matrix::M,
-        startpositions::AbstractVector{Point{N,T}};
-        kw_args...
-    )
+function layout!(
+         adj_matrix,
+         startpositions::AbstractVector{Point{N,T}};
+         kw_args...
+    ) where {N, T}
     size(adj_matrix, 1) != size(adj_matrix, 2) && error("Adj. matrix must be square.")
     # Layout object for the graph
     network = Layout(adj_matrix, Point{N,T}; startpositions=startpositions, kw_args...)
-    state = start(network)
-    while !done(network,state)
-        network,state = next(network,state)
+    next = iterate(network)
+    while next != nothing
+        (i, state) = next
+        next = iterate(network, state)
     end
     return network.positions
 end
 
-start(::Layout) = 1
-
-function next(network::Layout, state)
-    iter = layout_iterator!(network, state)
-    return network, iter
+function iterate(network::Layout)
+   network.iterations == 1 && return nothing
+   return network, 1
 end
 
-done(network::Layout,state) = (state == network.iterations)
-
-function layout_iterator!{M,P,T}(network::Layout{M,P,T}, iter)
+function iterate(network::Layout{M,P,T}, state) where {M, P, T}
     # The optimal distance bewteen vertices
     adj_matrix = network.adj_matrix
     N = size(adj_matrix,1)
-    force = zeros(eltype(P),N)
+    force = zeros(eltype(P), N)
     locs = network.positions
     C = network.C
     iterations = network.iterations
@@ -107,13 +104,16 @@ function layout_iterator!{M,P,T}(network::Layout{M,P,T}, iter)
         force[i] = force_vec
     end
     # Cool down
-    TEMP = initialtemp / iter
+    TEMP = initialtemp / state
     # Now apply them, but limit to temperature
     for i = 1:N
         force_mag  = norm(force[i])
         scale      = min(force_mag, TEMP)/force_mag
         locs[i]   += force[i] * scale
     end
-    return (iter+1)
+
+    network.iterations == state && return nothing
+    return network, (state+1)
 end
+
 end #end of module

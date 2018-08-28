@@ -1,4 +1,2 @@
-julia 0.6-
+julia 0.7
 GeometryTypes
-Compat 0.8.6
-StaticArrays

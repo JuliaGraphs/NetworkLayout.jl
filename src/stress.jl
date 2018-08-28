@@ -50,10 +50,11 @@ Reference:
 """
 module Stress
 
-using GeometryTypes, Compat, StaticArrays
-import Base: start, next, done
+using GeometryTypes
+using LinearAlgebra: checksquare, norm, pinv
+using SparseArrays: SparseMatrixCSC
 
-immutable Layout{M1<:AbstractMatrix, M2<:AbstractMatrix, VP<:AbstractVector, FT<:AbstractFloat}
+struct Layout{M1<:AbstractMatrix, M2<:AbstractMatrix, VP<:AbstractVector, FT<:AbstractFloat}
     δ::M1
     weights::M2
     positions::VP
@@ -72,12 +73,12 @@ function initialweights(D, T=Float64)::SparseMatrixCSC{T,Int64}
     end
 end
 
-function Layout{N, T}(
+function Layout(
         δ, PT::Type{Point{N, T}}=Point{2, Float64};
         startpositions=rand(PT, size(δ,1)), weights=initialweights(δ,T),
         iterations=400*size(δ,1)^2, abstols=√(eps(T)),
         reltols=√(eps(T)), abstolx=√(eps(T))
-    )
+    ) where {N, T}
     @assert size(startpositions, 1)==size(δ, 1)==size(δ, 2)==size(weights, 1)==size(weights, 2)
     Lw = weightedlaplacian(weights)
     pinvLw = pinv(Lw)
@@ -86,57 +87,55 @@ end
 
 layout(δ, dim::Int; kw_args...) = layout(δ, Point{dim,Float64}; kw_args...)
 
-function layout{N, T}(
+function layout(
         δ, PT::Type{Point{N, T}}=Point{2, Float64};
         startpositions=rand(PT, size(δ,1)), kw_args...
-    )
+    ) where {N, T}
     layout!(δ, startpositions; kw_args...)
 end
 
-function layout!{N, T}(
+function layout!(
         δ, startpositions::AbstractVector{Point{N, T}};
         iterations=400*size(δ,1)^2, kw_args...
-    )
+    ) where {N, T}
     iter = Layout(δ, Point{N,T}; startpositions=startpositions, kw_args...)
-    state = start(iter)
-    while !done(iter, state)
-        iter, state = next(iter, state)
+    num_iterations = 0
+    next = iterate(iter)
+    while next != nothing
+        i, state = next
+        next = iterate(iter, state)
+        num_iterations += 1
     end
-    state[end] > iterations && warn("Maximum number of iterations reached without convergence")
+    num_iterations > iterations && @warn("Maximum number of iterations reached without convergence")
     iter.positions
 end
 
-function start(network::Layout)
+function iterate(network::Layout)
+    network.iterations == 0 && return nothing
     s = stress(network.positions, network.δ, network.weights)
-    return (s, s, network.positions, 0)
+    return network, (s, s, network.positions, 0)
 end
 
-function next(iter::Layout, state)
+function iterate(network::Layout, state)
     newstress, oldstress, X0, i = state
-    δ, weights, pinvLw, positions, X0 = iter.δ, iter.weights, iter.pinvLw, iter.positions, copy(iter.positions)
+    δ, weights, pinvLw, positions, X0 = network.δ, network.weights, network.pinvLw, network.positions, copy(network.positions)
     #TODO the faster way is to drop the first row and col from the iteration
     t = LZ(X0, δ, weights)
     positions = pinvLw * (t*X0)
     @assert all(x->all(map(isfinite, x)), positions)
     newstress, oldstress = stress(positions, δ, weights), newstress
-    iter.positions[:] = positions
-    return iter, (newstress, oldstress, X0, (i+1))
+    network.positions[:] = positions
+
+    if i > network.iterations ||
+            abs(newstress - oldstress) < network.reltols * newstress ||
+            abs(newstress - oldstress) < network.abstols ||
+            norm(positions - X0) < network.abstolx
+        return nothing
+    end
+
+    return network, (newstress, oldstress, X0, (i+1))
+
 end
-
-function done(iter::Layout, state)
-    newstress, oldstress, X0, i = state
-    iterations, reltols = iter.iterations, iter.reltols
-    positions, abstols, abstolx = iter.positions, iter.abstols, iter.abstolx
-    (i == 0) && (i<iterations) && return false #special case 0th iteration
-
-    return (
-        i > iterations ||
-        abs(newstress - oldstress) < reltols * newstress ||
-        abs(newstress - oldstress) < abstols ||
-        vecnorm(positions - X0) < abstolx
-    )
-end
-
 
 """
 Stress function to majorize
@@ -148,10 +147,10 @@ Input:
 
 See (1) of Reference
 """
-function stress{T, N}(
+function stress(
         positions::AbstractArray{Point{T, N}},
         d=ones(T, length(positions), length(positions)), weights=initialweights(d, T)
-    )
+    ) where {T, N}
     s = zero(T); n = length(positions)
     @assert n==size(d, 1)==size(d, 2)==size(weights, 1)==size(weights, 2)
     for j=1:n, i=1:j-1
@@ -168,8 +167,8 @@ Compute weighted Laplacian given ideal weights weights
 
 Lʷ defined in (4) of the Reference
 """
-function weightedlaplacian{T}(weights::AbstractMatrix{T})
-    n = Compat.LinAlg.checksquare(weights)
+function weightedlaplacian(weights::AbstractMatrix{T}) where {T}
+    n = checksquare(weights)
     Lw = zeros(T, n, n)
     for i=1:n
         D = zero(T)
@@ -190,7 +189,7 @@ Input: Z: current layout (coordinates)
        d: Ideal distances (default: all 1)
        weights: weights (default: d.^-2)
 """
-function LZ{N,T}(Z::AbstractVector{Point{N,T}}, d, weights)
+function LZ(Z::AbstractVector{Point{N,T}}, d, weights) where {N,T}
     n = length(Z)
     L = zeros(T, n, n)
     for i=1:n

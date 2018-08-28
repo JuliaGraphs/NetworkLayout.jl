@@ -1,13 +1,15 @@
-using NetworkLayout:SFDP
-using NetworkLayout:Spring
-using NetworkLayout:Stress
-using NetworkLayout:Buchheim
-using NetworkLayout:Spectral
-using NetworkLayout:Shell
-using NetworkLayout:Circular
+using NetworkLayout.SFDP
+using NetworkLayout.Spring
+using NetworkLayout.Stress
+using NetworkLayout.Buchheim
+using NetworkLayout.Spectral
+using NetworkLayout.Shell
+using NetworkLayout.Circular
 using LightGraphs
-using BaseTestNext
 using GeometryTypes
+using DelimitedFiles: readdlm
+using SparseArrays: sparse
+using Test
 
 
 function jagmesh()
