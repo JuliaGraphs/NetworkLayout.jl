@@ -104,11 +104,11 @@ function iterate(network::Layout{M,P,T}, state) where {M, P, T}
         force[i] = force_vec
     end
     # Cool down
-    TEMP = initialtemp / state
+    temp = initialtemp / state
     # Now apply them, but limit to temperature
     for i = 1:N
         force_mag  = norm(force[i])
-        scale      = min(force_mag, TEMP)/force_mag
+        scale      = min(force_mag, temp)/force_mag
         locs[i]   += force[i] * scale
     end
 

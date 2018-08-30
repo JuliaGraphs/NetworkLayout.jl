@@ -162,6 +162,14 @@ jagmesh_adj = jagmesh()
           locs = @time Buchheim.layout(n)
           @test typeof(locs) == Vector{Point{2, Float64}}
         end
+
+        # This testset is to cover a piece of code
+        # that was not covered anymore after fixing a bug
+        @testset "Test another Binary tree" begin
+            tree = [[5, 6], [6], [7, 8], [8], [], [9], [9], [], []]
+            locs = @time Buchheim.layout(tree)
+            @test typeof(locs) == Vector{Point{2, Float64}}
+        end
     end
 
 end
