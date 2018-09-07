@@ -14,9 +14,9 @@ Output :
 module SFDP
 
 using GeometryTypes
-import Base: start, next, done
+using LinearAlgebra: norm
 
-immutable Layout{M<:AbstractMatrix, P<:AbstractVector, T<:AbstractFloat}
+struct Layout{M<:AbstractMatrix, P<:AbstractVector, T<:AbstractFloat}
     adj_matrix::M
     positions::P
     tol::T
@@ -25,42 +25,46 @@ immutable Layout{M<:AbstractMatrix, P<:AbstractVector, T<:AbstractFloat}
     iterations::Int
 end
 
-function Layout{M,N,T}(
-        adj_matrix::M, PT::Type{Point{N, T}}=Point{2, Float64};
+function Layout(
+        adj_matrix, PT::Type{Point{N, T}}=Point{2, Float64};
         startpositions=(2*rand(typ, size(adj_matrix,1)) .- 1),
         tol=1.0, C=0.2, K=1.0, iterations=100
-    )
+    ) where {N, T}
     Layout(adj_matrix, startpositions, T(tol), T(C), T(K), Int(iterations))
 end
 
 layout(adj_matrix, dim::Int; kw_args...) = layout(adj_matrix, Point{dim,Float64}; kw_args...)
 
-function layout{M,T,N}(
-        adj_matrix::M, typ::Type{Point{N, T}}=Point{2, Float64};
+function layout(
+        adj_matrix, typ::Type{Point{N, T}}=Point{2, Float64};
         startpositions = (2*rand(typ, size(adj_matrix,1)) .- 1),
         kw_args...
-    )
+    ) where {N, T}
     layout!(adj_matrix,startpositions;kw_args...)
 end
 
-function layout!{M,T,N}(
-        adj_matrix::M,
-        startpositions::AbstractVector{Point{N, T}};
-        kw_args...
-    )
+function layout!(adj_matrix,
+         startpositions::AbstractVector{Point{N, T}};
+         kw_args...
+    ) where {N, T}
     network = Layout(adj_matrix, Point{N,T}; startpositions=startpositions, kw_args...)
-    state = start(network)
-    while !done(network,state)
-        network, state = next(network,state)
+    next = iterate(network)
+    while next != nothing
+        (i, state) = next
+        next = iterate(network, state)
     end
     return network.positions
 end
 
-function start{M, P, T}(network::Layout{M, P, T})
-    (one(T), typemax(T), 0, true, 1, copy(network.positions))
+# TODO this iterator is a bit strange, it looks as if it network.iterations == 1
+# then it could take a long time. Furthermore I'm not sure if the iterators are
+# the best solution in this situation
+
+function iterate(network::Layout{M, P, T}) where {M, P, T}
+    return network, (one(T), typemax(T), 0, true, 1, copy(network.positions))
 end
 
-function next{M,P,T}(network::Layout{M,P,T}, state)
+function iterate(network::Layout, state)
     step, energy, progress, start, iter, locs0 = state
     K, C, tol, adj_matrix = network.K, network.C, network.tol, network.adj_matrix
     locs = network.positions; locs0 = copy(locs)
@@ -72,34 +76,31 @@ function next{M,P,T}(network::Layout{M,P,T}, state)
             i == j && continue
             if adj_matrix[i,j] == 1
             # Attractive forces for adjacent nodes
-                force = force + F(f_attr(locs[i],locs[j],K) * ((locs[j] - locs[i]) / norm(locs[j] - locs[i])))
+                force += F(f_attr(locs[i],locs[j],K) * ((locs[j] - locs[i]) / norm(locs[j] - locs[i])))
             else
             # Repulsive forces
-                force = force + F(f_repln(locs[i],locs[j],C,K) * ((locs[j] - locs[i]) / norm(locs[j] - locs[i])))
+                force += F(f_repln(locs[i],locs[j],C,K) * ((locs[j] - locs[i]) / norm(locs[j] - locs[i])))
             end
         end
         locs[i] = locs[i] + step * (force / norm(force))
         energy = energy + norm(force)^2
     end
     step, progress = update_step(step, energy, energy0, progress)
+
+    if iter == network.iterations && !start ||
+       dist_tolerance(network.positions, locs0, network.K, network.tol)
+        return nothing
+    end
+
     return network, (step, energy, progress, false, iter+1, locs0)
 end
 
-function done(network::Layout, state)
-    step, energy, progress, started, iter, locs0 = state
-    started && return false
-    return (
-        (iter==network.iterations) ||
-        dist_tolerance(network.positions, locs0, network.K, network.tol)
-    )
-end
-
 # Calculate Attractive force
-f_attr(a,b,K) = (norm(a-b)^2) / K
+f_attr(a, b, K) = (norm(a-b)^2) / K
 # Calculate Repulsive force
-f_repln(a,b,C,K) = -C*(K^2) / norm(a-b)
+f_repln(a, b, C, K) = -C*(K^2) / norm(a-b)
 
-function update_step{T}(step, energy::T, energy0, progress)
+function update_step(step, energy::T, energy0, progress) where {T}
     # cooldown step
     t = T(0.9)
     if energy < energy0
@@ -115,7 +116,7 @@ function update_step{T}(step, energy::T, energy0, progress)
     return step, progress
 end
 
-function dist_tolerance(locs,locs0,K,tol)
+function dist_tolerance(locs,locs0, K, tol)
     # check whether the layout is optimal
     for i in 1:size(locs, 1)
         if norm(locs[i]-locs0[i]) >= K*tol
