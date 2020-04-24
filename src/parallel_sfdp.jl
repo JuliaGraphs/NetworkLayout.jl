@@ -16,8 +16,9 @@ module ParallelSFDP
 using Distributed
 using GeometryTypes
 using LinearAlgebra: norm
+using SharedArrays
 
-struct Layout{M<:AbstractMatrix, P<:AbstractVector, T<:AbstractFloat}
+struct Layout{M<:SharedArray, P<:SharedArray, T<:AbstractFloat}
     adj_matrix::M
     positions::P
     tol::T
@@ -28,17 +29,17 @@ end
 
 function Layout(
         adj_matrix, PT::Type{Point{N, T}}=Point{2, Float64};
-        startpositions=(2*rand(typ, size(adj_matrix,1)) .- 1),
+        startpositions=(2*rand(PT, size(adj_matrix,1)) .- 1),
         tol=1.0, C=0.2, K=1.0, iterations=100
     ) where {N, T}
-    Layout(adj_matrix, startpositions, T(tol), T(C), T(K), Int(iterations))
+    Layout(SharedArray(Matrix(adj_matrix)), SharedArray(startpositions), T(tol), T(C), T(K), Int(iterations))
 end
 
 layout(adj_matrix, dim::Int; kw_args...) = layout(adj_matrix, Point{dim,Float64}; kw_args...)
 
 function layout(
-        adj_matrix, typ::Type{Point{N, T}}=Point{2, Float64};
-        startpositions = (2*rand(typ, size(adj_matrix,1)) .- 1),
+        adj_matrix, PT::Type{Point{N, T}}=Point{2, Float64};
+        startpositions = (2*rand(PT, size(adj_matrix,1)) .- 1),
         kw_args...
     ) where {N, T}
     layout!(adj_matrix,startpositions;kw_args...)
@@ -70,8 +71,10 @@ function iterate(network::Layout, state)
     K, C, tol, adj_matrix = network.K, network.C, network.tol, network.adj_matrix
     locs = network.positions; locs0 = copy(locs)
     energy0 = energy; energy = zero(energy)
+    energy_vec = zeros(nprocs())
+    energy_vec = SharedArray(energy_vec)
     F = eltype(locs); N = size(adj_matrix,1)
-    for i in 1:N
+    @sync @distributed for i in 1:N
         force = F(0)
         for j in 1:N
             i == j && continue
@@ -84,8 +87,9 @@ function iterate(network::Layout, state)
             end
         end
         locs[i] = locs[i] + step * (force / norm(force))
-        energy = energy + norm(force)^2
+        energy_vec[myid()-1] = energy_vec[myid()-1] + norm(force)^2
     end
+    energy = sum(energy_vec)
     step, progress = update_step(step, energy, energy0, progress)
 
     if iter == network.iterations && !start ||
