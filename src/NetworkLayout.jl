@@ -1,5 +1,6 @@
 module NetworkLayout
 
+include("parallel_sfdp.jl")
 include("sfdp.jl")
 include("buchheim.jl")
 include("spring.jl")
