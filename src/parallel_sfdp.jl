@@ -73,21 +73,10 @@ function iterate(network::Layout, state)
     energy0 = energy; energy = zero(energy)
     energy_vec = zeros(nprocs())
     energy_vec = SharedArray(energy_vec)
-    F = eltype(locs); N = size(adj_matrix,1)
-    @sync @distributed for i in 1:N
-        force = F(0)
-        for j in 1:N
-            i == j && continue
-            if adj_matrix[i,j] == 1
-            # Attractive forces for adjacent nodes
-                force += F(f_attr(locs[i],locs[j],K) * ((locs[j] - locs[i]) / norm(locs[j] - locs[i])))
-            else
-            # Repulsive forces
-                force += F(f_repln(locs[i],locs[j],C,K) * ((locs[j] - locs[i]) / norm(locs[j] - locs[i])))
-            end
+    @sync begin
+        for p in procs(adj_matrix)
+            @async remotecall_wait(compute_locs!, p, adj_matrix, locs, energy_vec, step, C, K, p)
         end
-        locs[i] = locs[i] + step * (force / norm(force))
-        energy_vec[myid()-1] = energy_vec[myid()-1] + norm(force)^2
     end
     energy = sum(energy_vec)
     step, progress = update_step(step, energy, energy0, progress)
@@ -104,6 +93,36 @@ end
 f_attr(a, b, K) = (norm(a-b)^2) / K
 # Calculate Repulsive force
 f_repln(a, b, C, K) = -C*(K^2) / norm(a-b)
+
+function loop_range(adj_matrix)
+    nchunks = length(procs(adj_matrix))
+    idx = indexpids(adj_matrix)
+    if idx == 0
+        return 1, 1
+    end
+    splits = [round(Int, s) for s in range(0, stop=size(adj_matrix,1), length=nchunks+1)]
+    return splits[idx]+1,splits[idx+1]
+end
+
+function compute_locs!(adj_matrix, locs, energy_vec, step, C, K, p)
+    F = eltype(locs); N = size(adj_matrix,1)
+    start_i, end_i = loop_range(adj_matrix)
+    for i in start_i:end_i
+        force = F(0)
+        for j in 1:N
+            i == j && continue
+            if adj_matrix[i,j] == 1
+            # Attractive forces for adjacent nodes
+                force += F(f_attr(locs[i],locs[j],K) * ((locs[j] - locs[i]) / norm(locs[j] - locs[i])))
+            else
+            # Repulsive forces
+                force += F(f_repln(locs[i],locs[j],C,K) * ((locs[j] - locs[i]) / norm(locs[j] - locs[i])))
+            end
+        end
+        locs[i] = locs[i] + step * (force / norm(force))
+        energy_vec[p-1] = energy_vec[p-1] + norm(force)^2
+    end
+end
 
 function update_step(step, energy::T, energy0, progress) where {T}
     # cooldown step
