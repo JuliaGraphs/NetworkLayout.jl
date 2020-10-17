@@ -16,7 +16,7 @@ module SFDP
 using GeometryBasics
 using LinearAlgebra: norm
 
-struct Layout{M <: AbstractMatrix,P <: AbstractVector,T <: AbstractFloat}
+struct Layout{M<:AbstractMatrix,P<:AbstractVector,T<:AbstractFloat}
     adj_matrix::M
     positions::P
     tol::T
@@ -25,28 +25,20 @@ struct Layout{M <: AbstractMatrix,P <: AbstractVector,T <: AbstractFloat}
     iterations::Int
 end
 
-function Layout(
-        adj_matrix, PT::Type{Point{N,T}}=Point{2,Float64};
-        startpositions=map(x -> 2 .* rand(PT) .- 1, 1:size(adj_matrix, 1)),
-        tol=1.0, C=0.2, K=1.0, iterations=100
-    ) where {N,T}
-    Layout(adj_matrix, startpositions, T(tol), T(C), T(K), Int(iterations))
+function Layout(adj_matrix, PT::Type{Point{N,T}}=Point{2,Float64};
+                startpositions=map(x -> 2 .* rand(PT) .- 1, 1:size(adj_matrix, 1)), tol=1.0, C=0.2, K=1.0,
+                iterations=100) where {N,T}
+    return Layout(adj_matrix, startpositions, T(tol), T(C), T(K), Int(iterations))
 end
 
 layout(adj_matrix, dim::Int; kw_args...) = layout(adj_matrix, Point{dim,Float64}; kw_args...)
 
-function layout(
-        adj_matrix, PT::Type{Point{N,T}}=Point{2,Float64};
-        startpositions=map(x -> 2 .* rand(PT) .- 1, 1:size(adj_matrix, 1)),
-        kw_args...
-    ) where {N,T}
-    layout!(adj_matrix, startpositions; kw_args...)
+function layout(adj_matrix, PT::Type{Point{N,T}}=Point{2,Float64};
+                startpositions=map(x -> 2 .* rand(PT) .- 1, 1:size(adj_matrix, 1)), kw_args...) where {N,T}
+    return layout!(adj_matrix, startpositions; kw_args...)
 end
 
-function layout!(adj_matrix,
-         startpositions::AbstractVector{Point{N,T}};
-         kw_args...
-    ) where {N,T}
+function layout!(adj_matrix, startpositions::AbstractVector{Point{N,T}}; kw_args...) where {N,T}
     network = Layout(adj_matrix, Point{N,T}; startpositions=startpositions, kw_args...)
     next = iterate(network)
     while next != nothing
@@ -67,19 +59,23 @@ end
 function iterate(network::Layout, state)
     step, energy, progress, start, iter, locs0 = state
     K, C, tol, adj_matrix = network.K, network.C, network.tol, network.adj_matrix
-    locs = network.positions; locs0 = copy(locs)
-    energy0 = energy; energy = zero(energy)
-    F = eltype(locs); N = size(adj_matrix, 1)
+    locs = network.positions
+    locs0 = copy(locs)
+    energy0 = energy
+    energy = zero(energy)
+    F = eltype(locs)
+    N = size(adj_matrix, 1)
     for i in 1:N
         force = F(0)
         for j in 1:N
             i == j && continue
-            if adj_matrix[i,j] == 1
-            # Attractive forces for adjacent nodes
+            if adj_matrix[i, j] == 1
+                # Attractive forces for adjacent nodes
                 force += F(f_attr(locs[i], locs[j], K) .* ((locs[j] .- locs[i]) / norm(locs[j] .- locs[i])))
             else
-            # Repulsive forces
-                force += F(f_repln(locs[i], locs[j], C, K) .* ((locs[j] .- locs[i]) / norm(locs[j] .- locs[i])))
+                # Repulsive forces
+                force += F(f_repln(locs[i], locs[j], C, K) .*
+                           ((locs[j] .- locs[i]) / norm(locs[j] .- locs[i])))
             end
         end
         locs[i] = locs[i] .+ step .* (force ./ norm(force))
@@ -96,7 +92,7 @@ function iterate(network::Layout, state)
 end
 
 # Calculate Attractive force
-f_attr(a, b, K) = (norm(a .- b).^2) ./ K
+f_attr(a, b, K) = (norm(a .- b) .^ 2) ./ K
 # Calculate Repulsive force
 f_repln(a, b, C, K) = -C .* (K^2) / norm(a .- b)
 

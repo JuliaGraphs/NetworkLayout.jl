@@ -11,14 +11,13 @@ using DelimitedFiles: readdlm
 using SparseArrays: sparse
 using Test
 
-
 function jagmesh()
     jagmesh_path = joinpath(dirname(@__FILE__), "jagmesh1.mtx")
     array = round.(Int, open(readdlm, jagmesh_path))
-    row = array[:,1]
-    col = array[:,2]
+    row = array[:, 1]
+    col = array[:, 2]
     entry = [(1:3600)...]
-    sparse(row, col, entry)
+    return sparse(row, col, entry)
 end
 jagmesh_adj = jagmesh()
 
@@ -131,16 +130,8 @@ jagmesh_adj = jagmesh()
 
         @testset "Test a Random tree" begin
             println("Buchheim Random")
-            adj_list = Vector{Int}[
-                [2,3,4],
-                [5,6],
-                [7],
-                [],
-                [],
-                [],
-                []
-            ]
-            nodesize = [1,2,1.5,3,0.5,1,1]
+            adj_list = Vector{Int}[[2, 3, 4], [5, 6], [7], [], [], [], []]
+            nodesize = [1, 2, 1.5, 3, 0.5, 1, 1]
             locs = @time Buchheim.layout(adj_list, nodesize=nodesize)
             @test typeof(locs) == Vector{Point{2,Float64}}
         end

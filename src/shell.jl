@@ -20,7 +20,7 @@ module Shell
 using GeometryBasics
 
 function layout(adj_matrix::AbstractMatrix; nlist::Union{Nothing,Vector{Vector{Int}}}=nothing)
-    layout!(adj_matrix, nlist)
+    return layout!(adj_matrix, nlist)
 end
 
 function layout!(adj_matrix::AbstractMatrix, nlist::Union{Nothing,Vector{Vector{Int}}})
@@ -39,12 +39,12 @@ function layout!(adj_matrix::AbstractMatrix, nlist::Union{Nothing,Vector{Vector{
     locs = T[]
     for nodes in nlist
         # Discard the extra angle since it matches 0 radians.
-        θ = range(0, stop=2pi, length=length(nodes) + 1)[1:end - 1]
+        θ = range(0, stop=2pi, length=length(nodes) + 1)[1:(end - 1)]
         x = T[(radius * cos(o), radius * sin(o)) for o in θ]
         append!(locs, x)
         radius += 1.0
     end
-    locs
+    return locs
 end
 
 end # end of module
