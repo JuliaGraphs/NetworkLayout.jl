@@ -12,7 +12,7 @@ positions     co-ordinates of the layout
 """
 module Buchheim
 
-using GeometryTypes
+using GeometryBasics
 
 struct Tree{A<:AbstractVector,P<:AbstractVector,F}
     nodes::A
