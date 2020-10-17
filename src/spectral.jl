@@ -10,15 +10,15 @@
 
 module Spectral
 
-using GeometryTypes
+using GeometryBasics
 using LinearAlgebra: diag, eigen, Diagonal
 
 function make_symmetric(adj_matrix::AbstractMatrix)
     adj_matrix = copy(adj_matrix)
-    for i=1:size(adj_matrix,1), j=i+1:size(adj_matrix,2)
-        adj_matrix[i,j] = adj_matrix[j,i] = adj_matrix[i,j]+adj_matrix[j,i]
+    for i in 1:size(adj_matrix, 1), j in (i + 1):size(adj_matrix, 2)
+        adj_matrix[i, j] = adj_matrix[j, i] = adj_matrix[i, j] + adj_matrix[j, i]
     end
-    adj_matrix
+    return adj_matrix
 end
 
 function compute_laplacian(adj_matrix, node_weights)
@@ -35,29 +35,23 @@ function compute_laplacian(adj_matrix, node_weights)
     D = Matrix(Diagonal(deg))
     T = eltype(node_weights)
     # Laplacian (L = D - adj_matrix)
-    L = T[i == j ? deg[i] : -adj_matrix[i,j] for i=1:n,j=1:n]
-
-    L, D
+    L = T[i == j ? deg[i] : -adj_matrix[i, j] for i in 1:n, j in 1:n]
+    return L, D
 end
 
-function layout(
-            adj_matrix::M;
-            node_weights=ones(eltype(M),
-            size(adj_matrix,1)),
-            kw_args...
-        ) where {M<:AbstractMatrix}
-    layout!(adj_matrix,node_weights,kw_args...)
+function layout(adj_matrix::M; node_weights=ones(eltype(M), size(adj_matrix, 1)),
+                kw_args...) where {M<:AbstractMatrix}
+    return layout!(adj_matrix, node_weights, kw_args...)
 end
 
 function layout!(adj_matrix, node_weights, kw_args...)
     adj_matrix = make_symmetric(adj_matrix)
     L, D = compute_laplacian(adj_matrix, node_weights)
-
     # get the matrix of eigenvectors
     v = eigen(L, D).vectors
     # x, y, and z are the 2nd through 4th eigenvectors of the solution to the
     # generalized eigenvalue problem Lv = λDv
-    Point{3, Float64}[(v[2, i], v[3, i], v[4, i]) for i in 1:size(v,2)]
+    return [Point(v[2, i], v[3, i], v[4, i]) for i in 1:size(v, 2)]
 end
 
 end # end of module
