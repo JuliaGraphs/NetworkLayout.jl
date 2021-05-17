@@ -1,10 +1,9 @@
-using NetworkLayout.SFDP
-using NetworkLayout.Spring
 using NetworkLayout.Stress
 using NetworkLayout.Buchheim
 using NetworkLayout.Spectral
 using NetworkLayout.Shell
 using NetworkLayout.Circular
+
 using NetworkLayout
 using LightGraphs
 using GeometryBasics
@@ -23,14 +22,39 @@ end
 jagmesh_adj = jagmesh()
 
 @testset "Testing NetworkLayout" begin
-
     @testset "Testing SFDP" begin
+        using NetworkLayout: SFDP
         println("SFDP")
+        @testset "SFDP construction" begin
+            algo = SFDP()
+            @test algo isa SFDP{2,Float64}
+            algo = SFDP(; dim=3, Ptype=Int)
+            @test algo isa SFDP{3,Int}
+            ip = [(1, 2.0, 3.0), (1, 2.0, 3)]
+            algo = SFDP(; initialpos=ip)
+            @test algo isa SFDP{3,Float64}
+            ip = [Point2f0(1, 2)]
+            algo = SFDP(; initialpos=ip)
+            @test algo isa SFDP{2,Float32}
+        end
+
+        @testset "iterator size" begin
+            for l in [1, 10, 100]
+                adj_matrix = adjacency_matrix(wheel_graph(10))
+                it = LayoutIterator(SFDP(; iterations=l, tol=0.0), adj_matrix)
+                vec = Any[]
+                for p in it
+                    push!(vec, p)
+                end
+                @test length(vec) == l
+                @test length(unique!(vec)) == l
+            end
+        end
         @testset "Testing Jagmesh1 graph" begin
             println("SFDP Jagmesh1")
-            positions = @time SFDP.layout(jagmesh_adj, Point2f0, tol=0.9, K=1, iterations=10)
+            positions = @time SFDP(; dim=2, Ptype=Float32, tol=0.9, K=1, iterations=10)(jagmesh_adj)
             @test typeof(positions) == Vector{Point2f0}
-            positions = @time SFDP.layout(jagmesh_adj, Point3f0, tol=0.9, K=1, iterations=10)
+            positions = @time SFDP(; dim=3, Ptype=Float32, tol=0.9, K=1, iterations=10)(jagmesh_adj)
             @test typeof(positions) == Vector{Point3f0}
         end
 
@@ -38,12 +62,11 @@ jagmesh_adj = jagmesh()
             println("SFDP Wheelgraph")
             g = wheel_graph(10)
             adj_matrix = adjacency_matrix(g)
-            positions = @time SFDP.layout(adj_matrix, Point2f0, tol=0.1, K=1)
+            positions = @time SFDP(; dim=2, Ptype=Float32, tol=0.1, K=1)(adj_matrix)
             @test typeof(positions) == Vector{Point2f0}
-            positions = @time SFDP.layout(adj_matrix, Point3f0, tol=0.1, K=1)
+            positions = @time SFDP(; dim=3, Ptype=Float32, tol=0.1, K=1)(adj_matrix)
             @test typeof(positions) == Vector{Point3f0}
         end
-
     end
 
     @testset "Testing Stress Majorization Algorithm" begin
@@ -51,9 +74,9 @@ jagmesh_adj = jagmesh()
 
         @testset "Testing Jagmesh1 graph" begin
             println("Stress Jagmesh1")
-            positions = @time Stress.layout(jagmesh_adj, Point2f0, iterations=10)
+            positions = @time Stress.layout(jagmesh_adj, Point2f0; iterations=10)
             @test typeof(positions) == Vector{Point2f0}
-            positions = @time Stress.layout(jagmesh_adj, Point3f0, iterations=10)
+            positions = @time Stress.layout(jagmesh_adj, Point3f0; iterations=10)
             @test typeof(positions) == Vector{Point3f0}
         end
 
@@ -61,12 +84,11 @@ jagmesh_adj = jagmesh()
             println("Stress wheel_graph")
             g = wheel_graph(10)
             adj_matrix = adjacency_matrix(g)
-            positions = @time Stress.layout(adj_matrix, Point2f0, iterations=10)
+            positions = @time Stress.layout(adj_matrix, Point2f0; iterations=10)
             @test typeof(positions) == Vector{Point2f0}
-            positions = @time Stress.layout(adj_matrix, Point3f0, iterations=10)
+            positions = @time Stress.layout(adj_matrix, Point3f0; iterations=10)
             @test typeof(positions) == Vector{Point3f0}
         end
-
     end
 
     @testset "Testing Spring Algorithm" begin
@@ -88,7 +110,7 @@ jagmesh_adj = jagmesh()
         @testset "iterator size" begin
             for l in [1, 10, 100]
                 adj_matrix = adjacency_matrix(wheel_graph(10))
-                it = LayoutIterator(Spring(iterations=l), adj_matrix)
+                it = LayoutIterator(Spring(; iterations=l), adj_matrix)
                 vec = Any[]
                 for p in it
                     push!(vec, p)
@@ -106,7 +128,6 @@ jagmesh_adj = jagmesh()
             positions = @time Spring(; C=2.0, iterations=100, initialtemp=2.0, Ptype=Float32, dim=3)(adj_matrix)
             @test typeof(positions) == Vector{Point3f0}
         end
-
     end
 
     @testset "Testing Spectral Algorithm" begin
@@ -133,7 +154,6 @@ jagmesh_adj = jagmesh()
             positions = @time Circular.layout(adj_matrix)
             @test typeof(positions) == Vector{Point{2,Float64}}
         end
-
     end
 
     @testset "Testing Shell Layout Algorithm" begin
@@ -160,7 +180,7 @@ jagmesh_adj = jagmesh()
             println("Buchheim Random")
             adj_list = Vector{Int}[[2, 3, 4], [5, 6], [7], [], [], [], []]
             nodesize = [1, 2, 1.5, 3, 0.5, 1, 1]
-            locs = @time Buchheim.layout(adj_list, nodesize=nodesize)
+            locs = @time Buchheim.layout(adj_list; nodesize=nodesize)
             @test typeof(locs) == Vector{Point{2,Float64}}
         end
 
@@ -190,5 +210,4 @@ jagmesh_adj = jagmesh()
             @test typeof(locs) == Vector{Point{2,Float64}}
         end
     end
-
 end

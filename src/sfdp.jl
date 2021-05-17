@@ -11,71 +11,67 @@ Arguments :
 Output :
   positions       Co-ordinates for the nodes
 """
-module SFDP
-
-using GeometryBasics
-using LinearAlgebra: norm
-
-struct Layout{M<:AbstractMatrix,P<:AbstractVector,T<:AbstractFloat}
-    adj_matrix::M
-    positions::P
+struct SFDP{Dim,Ptype,T<:AbstractFloat} <: IterativeLayout{Dim,Ptype}
     tol::T
     C::T
     K::T
     iterations::Int
+    initialpos::Vector{Point{Dim,Ptype}}
 end
 
-function Layout(adj_matrix, PT::Type{Point{N,T}}=Point{2,Float64};
-                startpositions=map(x -> 2 .* rand(PT) .- 1, 1:size(adj_matrix, 1)), tol=1.0, C=0.2, K=1.0,
-                iterations=100) where {N,T}
-    return Layout(adj_matrix, startpositions, T(tol), T(C), T(K), Int(iterations))
-end
-
-layout(adj_matrix, dim::Int; kw_args...) = layout(adj_matrix, Point{dim,Float64}; kw_args...)
-
-function layout(adj_matrix, PT::Type{Point{N,T}}=Point{2,Float64};
-                startpositions=map(x -> 2 .* rand(PT) .- 1, 1:size(adj_matrix, 1)), kw_args...) where {N,T}
-    return layout!(adj_matrix, startpositions; kw_args...)
-end
-
-function layout!(adj_matrix, startpositions::AbstractVector{Point{N,T}}; kw_args...) where {N,T}
-    network = Layout(adj_matrix, Point{N,T}; startpositions=startpositions, kw_args...)
-    next = iterate(network)
-    while next != nothing
-        (i, state) = next
-        next = iterate(network, state)
+function SFDP(; dim=2, Ptype=Float64, tol=1.0, C=0.2, K=1.0, iterations=100, initialpos=Point{dim,Ptype}[])
+    if !isempty(initialpos)
+        initialpos = Point.(initialpos)
+        Ptype = eltype(eltype(initialpos))
+        # TODO fix initial pos if list has points of multiple types
+        Ptype == Any && error("Please provide list of Point{N,T} with same T")
+        dim = length(eltype(initialpos))
     end
-    return network.positions
+    return SFDP{dim,Ptype,typeof(tol)}(tol, C, K, iterations, initialpos)
 end
 
-# TODO this iterator is a bit strange, it looks as if it network.iterations == 1
-# then it could take a long time. Furthermore I'm not sure if the iterators are
-# the best solution in this situation
-
-function iterate(network::Layout{M,P,T}) where {M,P,T}
-    return network, (one(T), typemax(T), 0, true, 1, copy(network.positions))
+function init(layout::SFDP{Dim,Ptype,T}, adj_matrix) where {Dim,Ptype,T}
+    N = size(adj_matrix, 1)
+    M = length(layout.initialpos)
+    startpos = Vector{Point{Dim,Ptype}}(undef, N)
+    # take the first
+    for i in 1:min(N, M)
+        startpos[i] = layout.initialpos[i]
+    end
+    # fill the rest with random points
+    for i in (M + 1):N
+        startpos[i] = 2 .* rand(Point{Dim,Ptype}) .- 1
+    end
+    # the `state` of the iterator is (#iter, energy, step, progress, stopflag)
+    return startpos, (1, typemax(T), one(T), 0, false)
 end
 
-function iterate(network::Layout, state)
-    step, energy, progress, start, iter, locs0 = state
-    K, C, tol, adj_matrix = network.K, network.C, network.tol, network.adj_matrix
-    locs = network.positions
-    locs0 = copy(locs)
-    energy0 = energy
-    energy = zero(energy)
-    F = eltype(locs)
+function step(layout::SFDP, adj_matrix, locs0, state)
+    iter, energy0, step, progress, stopflag = state
+
+    # stop if stopflag (tol reached) or nr of iterations reached
+    if iter >= layout.iterations || stopflag
+        return nothing
+    end
+
+    K, C, tol = layout.K, layout.C, layout.tol
+
+    locs = copy(locs0)
+    energy = zero(energy0)
+    Ftype = eltype(locs)
     N = size(adj_matrix, 1)
     for i in 1:N
-        force = F(0)
+        force = zero(Ftype)
         for j in 1:N
             i == j && continue
             if adj_matrix[i, j] == 1
                 # Attractive forces for adjacent nodes
-                force += F(f_attr(locs[i], locs[j], K) .* ((locs[j] .- locs[i]) / norm(locs[j] .- locs[i])))
+                force += Ftype(f_attr(locs[i], locs[j], K) .*
+                               ((locs[j] .- locs[i]) / norm(locs[j] .- locs[i])))
             else
                 # Repulsive forces
-                force += F(f_repln(locs[i], locs[j], C, K) .*
-                           ((locs[j] .- locs[i]) / norm(locs[j] .- locs[i])))
+                force += Ftype(f_repln(locs[i], locs[j], C, K) .*
+                               ((locs[j] .- locs[i]) / norm(locs[j] .- locs[i])))
             end
         end
         locs[i] = locs[i] .+ step .* (force ./ norm(force))
@@ -83,12 +79,12 @@ function iterate(network::Layout, state)
     end
     step, progress = update_step(step, energy, energy0, progress)
 
-    if iter == network.iterations && !start ||
-       dist_tolerance(network.positions, locs0, network.K, network.tol)
-        return nothing
+    # if the tolerance is reached set stopflag to keep claculated point but stop next iteration
+    if dist_tolerance(locs, locs0, K, tol)
+        stopflag = true
     end
 
-    return network, (step, energy, progress, false, iter + 1, locs0)
+    return locs, (iter+1, energy, step, progress, stopflag)
 end
 
 # Calculate Attractive force
@@ -121,5 +117,3 @@ function dist_tolerance(locs, locs0, K, tol)
     end
     return true
 end
-
-end # end of module

@@ -41,7 +41,7 @@ function layout(alg::IterativeLayout, adj_matrix)
     return iterable.positions
 end
 
-# include("sfdp.jl")
+include("sfdp.jl")
 # include("buchheim.jl")
 include("spring.jl")
 # include("stress.jl")
