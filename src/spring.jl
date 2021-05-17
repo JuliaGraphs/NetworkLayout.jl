@@ -56,6 +56,7 @@ function step(layout::Spring, adj_matrix, locs, iteration)
     Ftype = eltype(force)
     K = layout.C * sqrt(4.0 / N)
 
+    locs = copy(locs)
     # Calculate forces
     for i in 1:N
         force_vec = zero(Ftype)

@@ -85,6 +85,19 @@ jagmesh_adj = jagmesh()
             @test algo isa Spring{2,Float32}
         end
 
+        @testset "iterator size" begin
+            for l in [1, 10, 100]
+                adj_matrix = adjacency_matrix(wheel_graph(10))
+                it = LayoutIterator(Spring(iterations=l), adj_matrix)
+                vec = Any[]
+                for p in it
+                    push!(vec, p)
+                end
+                @test length(vec) == l
+                @test length(unique!(vec)) == l
+            end
+        end
+
         @testset "Testing wheel_graph" begin
             g = wheel_graph(10)
             adj_matrix = adjacency_matrix(g)
