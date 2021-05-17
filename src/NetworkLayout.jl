@@ -1,6 +1,6 @@
 module NetworkLayout
 
-export LayoutIterator
+export LayoutIterator, layout
 
 using GeometryBasics
 using LinearAlgebra: norm
@@ -42,7 +42,7 @@ function layout(alg::IterativeLayout, adj_matrix)
 end
 
 include("sfdp.jl")
-# include("buchheim.jl")
+include("buchheim.jl")
 include("spring.jl")
 # include("stress.jl")
 # include("spectral.jl")
