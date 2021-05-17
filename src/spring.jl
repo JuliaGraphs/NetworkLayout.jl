@@ -14,65 +14,51 @@
     iterations    Number of iterations we apply the forces
     initialtemp   Initial "temperature", controls movement per iteration
 """
-module Spring
-
-using GeometryBasics
-using LinearAlgebra: norm
-
-struct Layout{M<:AbstractMatrix,P<:AbstractVector,T<:AbstractFloat}
-    adj_matrix::M
-    positions::P
-    C::T
+struct Spring{Dim,Ptype} <: IterativeLayout{Dim,Ptype}
+    C::Float64
     iterations::Int
-    initialtemp::T
+    initialtemp::Float64
+    initialpos::Vector{Point{Dim,Ptype}}
 end
 
-function Layout(adj_matrix, PT::Type{Point{N,T}}=Point{2,Float64};
-                startpositions=map(x -> 2 .* rand(PT) .- 1, 1:size(adj_matrix, 1)), C=2.0, iterations=100,
-                initialtemp=2.0) where {N,T}
-    return Layout(adj_matrix, startpositions, T(C), Int(iterations), T(initialtemp))
-end
-
-layout(adj_matrix, dim::Int; kw_args...) = layout(adj_matrix, Point{dim,Float64}; kw_args...)
-
-function layout(adj_matrix, PT::Type{Point{N,T}}=Point{2,Float64};
-                startpositions=map(x -> 2 .* rand(PT) .- 1, 1:size(adj_matrix, 1)), kw_args...) where {N,T}
-    return layout!(adj_matrix, startpositions; kw_args...)
-end
-
-function layout!(adj_matrix, startpositions::AbstractVector{Point{N,T}}; kw_args...) where {N,T}
-    size(adj_matrix, 1) != size(adj_matrix, 2) && error("Adj. matrix must be square.")
-    # Layout object for the graph
-    network = Layout(adj_matrix, Point{N,T}; startpositions=startpositions, kw_args...)
-    next = iterate(network)
-    while next != nothing
-        (i, state) = next
-        next = iterate(network, state)
+function Spring(; dim=2, Ptype=Float64, C=2.0, iterations=100, initialtemp=2.0, initialpos=Point{dim,Ptype}[])
+    if !isempty(initialpos)
+        initialpos = Point.(initialpos)
+        Ptype = eltype(eltype(initialpos))
+        # TODO fix initial pos if list has points of multiple types
+        Ptype == Any && error("Please provide list of Point{N,T} with same T")
+        dim = length(eltype(initialpos))
     end
-    return network.positions
+    return Spring{dim,Ptype}(C, iterations, initialtemp, initialpos)
 end
 
-function iterate(network::Layout)
-    network.iterations == 1 && return nothing
-    return network, 1
+function init(layout::Spring{Dim,Ptype}, adj_matrix) where {Dim,Ptype}
+    N = size(adj_matrix, 1)
+    M = length(layout.initialpos)
+    startpos = Vector{Point{Dim,Ptype}}(undef, N)
+    # take the first
+    for i in 1:min(N, M)
+        startpos[i] = layout.initialpos[i]
+    end
+    # fill the rest with random points
+    for i in (M + 1):N
+        startpos[i] = 2 .* rand(Point{Dim,Ptype}) .- 1
+    end
+    return (startpos, 1)
 end
 
-function iterate(network::Layout{M,P,T}, state) where {M,P,T}
+function step(layout::Spring, adj_matrix, locs, iteration)
+    iteration >= layout.iterations && return nothing
+
     # The optimal distance bewteen vertices
-    adj_matrix = network.adj_matrix
     N = size(adj_matrix, 1)
-    force = zeros(eltype(P), N)
-    locs = network.positions
-    C = network.C
-    iterations = network.iterations
-    initialtemp = network.initialtemp
-    N = size(adj_matrix, 1)
+    force = similar(locs)
     Ftype = eltype(force)
-    K = C * sqrt(4.0 / N)
+    K = layout.C * sqrt(4.0 / N)
 
     # Calculate forces
     for i in 1:N
-        force_vec = Ftype(0)
+        force_vec = zero(Ftype)
         for j in 1:N
             i == j && continue
             d = norm(locs[j] .- locs[i])
@@ -94,7 +80,7 @@ function iterate(network::Layout{M,P,T}, state) where {M,P,T}
         force[i] = force_vec
     end
     # Cool down
-    temp = initialtemp / state
+    temp = layout.initialtemp / iteration
     # Now apply them, but limit to temperature
     for i in 1:N
         force_mag = norm(force[i])
@@ -102,8 +88,5 @@ function iterate(network::Layout{M,P,T}, state) where {M,P,T}
         locs[i] += force[i] .* scale
     end
 
-    network.iterations == state && return nothing
-    return network, (state + 1)
+    return locs, (iteration + 1)
 end
-
-end # end of module

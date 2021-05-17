@@ -5,6 +5,7 @@ using NetworkLayout.Buchheim
 using NetworkLayout.Spectral
 using NetworkLayout.Shell
 using NetworkLayout.Circular
+using NetworkLayout
 using LightGraphs
 using GeometryBasics
 using DelimitedFiles: readdlm
@@ -69,13 +70,27 @@ jagmesh_adj = jagmesh()
     end
 
     @testset "Testing Spring Algorithm" begin
+        using NetworkLayout: Spring
         println("Spring wheel_graph")
+        @testset "Spring construction" begin
+            algo = Spring()
+            @test algo isa Spring{2,Float64}
+            algo = Spring(; dim=3, Ptype=Int)
+            @test algo isa Spring{3,Int}
+            ip = [(1, 2.0, 3.0), (1, 2.0, 3)]
+            algo = Spring(; initialpos=ip)
+            @test algo isa Spring{3,Float64}
+            ip = [Point2f0(1, 2)]
+            algo = Spring(; initialpos=ip)
+            @test algo isa Spring{2,Float32}
+        end
+
         @testset "Testing wheel_graph" begin
             g = wheel_graph(10)
             adj_matrix = adjacency_matrix(g)
-            positions = @time Spring.layout(adj_matrix, Point2f0, C=2.0, iterations=100, initialtemp=2.0)
+            positions = @time Spring(; C=2.0, iterations=100, initialtemp=2.0, Ptype=Float32)(adj_matrix)
             @test typeof(positions) == Vector{Point2f0}
-            positions = @time Spring.layout(adj_matrix, Point3f0, C=2.0, iterations=100, initialtemp=2.0)
+            positions = @time Spring(; C=2.0, iterations=100, initialtemp=2.0, Ptype=Float32, dim=3)(adj_matrix)
             @test typeof(positions) == Vector{Point3f0}
         end
 
