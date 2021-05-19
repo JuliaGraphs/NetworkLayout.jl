@@ -1,15 +1,10 @@
 # NetworkLayout.jl
 Layout algorithms for graphs and trees in pure Julia.
 
-<!-- [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](http://juliaplots.org/GraphMakie.jl/stable) -->
-<!-- [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](http://juliaplots.org/GraphMakie.jl/dev/) -->
+<!-- [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://juliagraphs.org/NetworkLayout.jl/stable) -->
+<!-- [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://juliagraphs.org/NetworkLayout.jl/dev/) -->
 [![Build Status](https://github.com/JuliaGraphs/NetworkLayout.jl/workflows/CI/badge.svg)](https://github.com/JuliaGraphs/NetworkLayout.jl/actions)
 [![Coverage](https://codecov.io/gh/JuliaGraphs/NetworkLayout.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/JuliaGraphs/NetworkLayout.jl)
-<!-- [![Coverage Status](https://coveralls.io/repos/github/JuliaGraphs/NetworkLayout.jl/badge.svg?branch=master)](https://coveralls.io/github/JuliaGraphs/NetworkLayout.jl?branch=master) -->
-
-Linux, OSX : [![Build Status](https://travis-ci.org/JuliaGraphs/NetworkLayout.jl.svg?branch=master)](https://travis-ci.org/JuliaGraphs/NetworkLayout.jl)
-
-Windows : [![Build status](https://ci.appveyor.com/api/projects/status/328ph0ct3t8fc91u/branch/master?svg=true)](https://ci.appveyor.com/project/abhijithanilkumar/networklayout-jl-b6gcd/branch/master)
 
 ## Algorithms
 
