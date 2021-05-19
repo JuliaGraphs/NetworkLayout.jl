@@ -1,5 +1,8 @@
-using NetworkLayout
 using Documenter
+using NetworkLayout
+using LightGraphs
+using GraphMakie
+using CairoMakie
 
 DocMeta.setdocmeta!(NetworkLayout, :DocTestSetup, :(using NetworkLayout); recursive=true)
 
