@@ -7,8 +7,8 @@ using LinearAlgebra: norm
 
 abstract type AbstractLayout{Dim,Ptype} end
 
-dim(::AbstractLayout{Dim, Ptype}) where {Dim,Ptype} = Dim
-ptype(::AbstractLayout{Dim, Ptype}) where {Dim,Ptype} = Ptype
+dim(::AbstractLayout{Dim,Ptype}) where {Dim,Ptype} = Dim
+ptype(::AbstractLayout{Dim,Ptype}) where {Dim,Ptype} = Ptype
 
 (lay::AbstractLayout)(adj_matrix) = layout(lay, adj_matrix)
 
@@ -37,6 +37,6 @@ include("spring.jl")
 include("stress.jl")
 include("spectral.jl")
 include("circular.jl")
-# include("shell.jl")
+include("shell.jl")
 
 end

@@ -15,36 +15,41 @@ julia> nlist[2] = [6:num_vertiecs(g)]
 julia> locs_x, locs_y = shell_layout(g, nlist)
 ```
 """
-module Shell
-
-using GeometryBasics
-
-function layout(adj_matrix::AbstractMatrix; nlist::Union{Nothing,Vector{Vector{Int}}}=nothing)
-    return layout!(adj_matrix, nlist)
+struct Shell{Ptype} <: AbstractLayout{2,Ptype}
+    nlist::Vector{Vector{Int}}
 end
 
-function layout!(adj_matrix::AbstractMatrix, nlist::Union{Nothing,Vector{Vector{Int}}})
+Shell(; Ptype=Float64, nlist=Int[]) = Shell{Ptype}(nlist)
+
+function layout(algo::Shell{Ptype}, adj_matrix) where {Ptype}
     if size(adj_matrix, 1) == 1
         return Point{2,Float64}[Point(0.0, 0.0)]
     end
-    if nlist == nothing
-        nlist = Array{Vector{Int}}(undef, 1)
-        nlist[1] = collect(1:size(adj_matrix, 1))
+
+    N = size(adj_matrix, 1)
+    nlist = copy(algo.nlist)
+
+    # if the list does not contain all the nodes push missing nodes to new shell
+    listed_nodes = Iterators.flatten(nlist)
+    @assert allunique(listed_nodes)
+    diff = setdiff(1:N, listed_nodes)
+    if !isempty(diff)
+        push!(nlist, diff)
     end
+
     radius = 0.0
     if length(nlist[1]) > 1
         radius = 1.0
     end
-    T = Point{2,Float64}
-    locs = T[]
+
+    T = Point{2,Ptype}
+    locs = Vector{T}(undef, N)
     for nodes in nlist
         # Discard the extra angle since it matches 0 radians.
-        θ = range(0, stop=2pi, length=length(nodes) + 1)[1:(end - 1)]
+        θ = range(0; stop=2pi, length=length(nodes) + 1)[1:(end - 1)]
         x = T[(radius * cos(o), radius * sin(o)) for o in θ]
-        append!(locs, x)
+        locs[nodes] = x
         radius += 1.0
     end
     return locs
 end
-
-end # end of module
