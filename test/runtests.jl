@@ -156,12 +156,15 @@ jagmesh_adj = jagmesh()
     end
 
     @testset "Testing Spectral Algorithm" begin
+        using NetworkLayout: Spectral
         println("Spectral wheel_graph")
         @testset "Testing wheel_graph" begin
             g = wheel_graph(10)
             adj_matrix = adjacency_matrix(g)
-            positions = @time Spectral.layout(adj_matrix)
+            positions = @time Spectral()(adj_matrix)
             @test typeof(positions) == Vector{Point{3,Float64}}
+            positions = @time Spectral(;Ptype=Float32)(adj_matrix)
+            @test typeof(positions) == Vector{Point{3,Float32}}
         end
     end
 

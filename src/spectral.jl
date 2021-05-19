@@ -1,3 +1,5 @@
+using LinearAlgebra: diag, eigen, Diagonal
+
 # -----------------------------------------------------
 # -----------------------------------------------------
 
@@ -8,10 +10,11 @@
 # under-appreciated method of graph layouts; easier, simpler, and faster
 # than the more common spring-based methods.
 
-module Spectral
+struct Spectral{Ptype,FT<:AbstractFloat} <: AbstractLayout{3,Ptype}
+    nodeweights::Vector{FT}
+end
 
-using GeometryBasics
-using LinearAlgebra: diag, eigen, Diagonal
+Spectral(; Ptype=Float64, nodeweights=Float64[]) = Spectral{Ptype,eltype(nodeweights)}(nodeweights)
 
 function make_symmetric(adj_matrix::AbstractMatrix)
     adj_matrix = copy(adj_matrix)
@@ -31,7 +34,7 @@ function compute_laplacian(adj_matrix, node_weights)
     adj_matrix = adj_matrix .* sqrt.(node_weights * node_weights')
 
     # D is a diagonal matrix with the degrees (total weights for that node) on the diagonal
-    deg = vec(sum(adj_matrix, dims=1)) - diag(adj_matrix)
+    deg = vec(sum(adj_matrix; dims=1)) - diag(adj_matrix)
     D = Matrix(Diagonal(deg))
     T = eltype(node_weights)
     # Laplacian (L = D - adj_matrix)
@@ -39,19 +42,19 @@ function compute_laplacian(adj_matrix, node_weights)
     return L, D
 end
 
-function layout(adj_matrix::M; node_weights=ones(eltype(M), size(adj_matrix, 1)),
-                kw_args...) where {M<:AbstractMatrix}
-    return layout!(adj_matrix, node_weights, kw_args...)
-end
+function layout(algo::Spectral{Ptype,FT}, adj_matrix) where {Ptype,FT}
+    # try to use user provided nodeweights
+    nodeweights = if length(algo.nodeweights) == size(adj_matrix, 1)
+        algo.nodeweights
+    else
+        ones(FT, size(adj_matrix, 1))
+    end
 
-function layout!(adj_matrix, node_weights, kw_args...)
     adj_matrix = make_symmetric(adj_matrix)
-    L, D = compute_laplacian(adj_matrix, node_weights)
+    L, D = compute_laplacian(adj_matrix, nodeweights)
     # get the matrix of eigenvectors
     v = eigen(L, D).vectors
     # x, y, and z are the 2nd through 4th eigenvectors of the solution to the
     # generalized eigenvalue problem Lv = λDv
-    return [Point(v[2, i], v[3, i], v[4, i]) for i in 1:size(v, 2)]
+    return [Point{3,Ptype}(v[2, i], v[3, i], v[4, i]) for i in 1:size(v, 2)]
 end
-
-end # end of module
