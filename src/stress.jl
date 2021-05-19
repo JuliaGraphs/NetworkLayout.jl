@@ -1,3 +1,6 @@
+using LinearAlgebra: checksquare, norm, pinv, mul!
+using SparseArrays: SparseMatrixCSC
+
 """
 Compute graph layout using stress majorization
 
@@ -48,86 +51,91 @@ Reference:
         pages={239--250},
     }
 """
-module Stress
-
-using GeometryBasics
-using LinearAlgebra: checksquare, norm, pinv
-using SparseArrays: SparseMatrixCSC
-
-struct Layout{M1<:AbstractMatrix,M2<:AbstractMatrix,VP<:AbstractVector,FT<:AbstractFloat}
-    δ::M1
-    weights::M2
-    positions::VP
-    pinvLw::Matrix{FT}
-    iterations::Int
+struct Stress{Dim,Ptype,IT<:Union{Symbol,Int},FT<:AbstractFloat,M<:AbstractMatrix} <:
+       IterativeLayout{Dim,Ptype}
+    iterations::IT
     abstols::FT
     reltols::FT
     abstolx::FT
+    weights::M
+    initialpos::Vector{Point{Dim,Ptype}}
 end
 
-function initialweights(D, T=Float64)::SparseMatrixCSC{T,Int64}
+function Stress(; dim=2, Ptype=Float64, iterations=:auto, abstols=(√(eps(Float64))),
+                reltols=(√(eps(Float64))), abstolx=(√(eps(Float64))), weights=Array{Float64}(undef, 0, 0),
+                initialpos=Point{dim,Ptype}[])
+    if !isempty(initialpos)
+        initialpos = Point.(initialpos)
+        Ptype = eltype(eltype(initialpos))
+        # TODO fix initial pos if list has points of multiple types
+        Ptype == Any && error("Please provide list of Point{N,T} with same T")
+        dim = length(eltype(initialpos))
+    end
+    IT, FT, WT = typeof(iterations), typeof(abstols), typeof(weights)
+    Stress{dim,Ptype,IT,FT,WT}(iterations, abstols, reltols, abstolx, weights, initialpos)
+end
+
+function initialweights(D, T)::SparseMatrixCSC{T,Int64}
     map(D) do d
         x = T(d^(-2.0))
         return isfinite(x) ? x : zero(T)
     end
 end
 
-function Layout(δ, PT::Type{Point{N,T}}=Point{2,Float64}; startpositions=rand(PT, size(δ, 1)),
-                weights=initialweights(δ, T), iterations=400 * size(δ, 1)^2, abstols=√(eps(T)),
-                reltols=√(eps(T)), abstolx=√(eps(T))) where {N,T}
-    @assert size(startpositions, 1) == size(δ, 1) == size(δ, 2) == size(weights, 1) == size(weights, 2)
+function Base.iterate(iter::LayoutIterator{<:Stress{Dim,Ptype,IT,FT}}) where {Dim,Ptype,IT,FT}
+    algo, δ = iter.algorithm, iter.adj_matrix
+    N = size(δ, 1)
+    M = length(algo.initialpos)
+    startpos = Vector{Point{Dim,Ptype}}(undef, N)
+    # take the first
+    for i in 1:min(N, M)
+        startpos[i] = algo.initialpos[i]
+    end
+    # fill the rest with random points
+    for i in (M + 1):N
+        startpos[i] = 2 .* rand(Point{Dim,Ptype}) .- 1
+    end
+
+    # calculate iteration if :auto
+    maxiter = algo.iterations === :auto ? 400 * size(δ, 1)^2 : algo.iterations
+    @assert maxiter > 0 "Iterations need to be > 0"
+
+    # if user provided weights not empty try those
+    weights = isempty(algo.weights) ? initialweights(δ, FT) : algo.weights
+
+    @assert length(startpos) == size(δ, 1) == size(δ, 2) == size(weights, 1) == size(weights, 2) "Wrong size of weights?"
+
     Lw = weightedlaplacian(weights)
     pinvLw = pinv(Lw)
-    return Layout(δ, weights, startpositions, pinvLw, iterations, abstols, reltols, abstolx)
+    s = stress(startpos, δ, weights)
+
+    # the `state` of the iterator is (#iter, old stress, old pos, weights, pinvLw, stopflag)
+    return startpos, (1, s, startpos, weights, pinvLw, maxiter, false)
 end
 
-layout(δ, dim::Int; kw_args...) = layout(δ, Point{dim,Float64}; kw_args...)
+function Base.iterate(iter::LayoutIterator{<:Stress{Dim,Ptype}}, state) where {Dim,Ptype}
+    algo, δ = iter.algorithm, iter.adj_matrix
+    i, oldstress, oldpos, weights, pinvLw, maxiter, stopflag = state
+    # newstress, oldstress, X0, i = state
 
-function layout(δ, PT::Type{Point{N,T}}=Point{2,Float64}; startpositions=rand(PT, size(δ, 1)),
-                kw_args...) where {N,T}
-    return layout!(δ, startpositions; kw_args...)
-end
-
-function layout!(δ, startpositions::AbstractVector{Point{N,T}}; iterations=400 * size(δ, 1)^2,
-                 kw_args...) where {N,T}
-    iter = Layout(δ, Point{N,T}; startpositions=startpositions, kw_args...)
-    num_iterations = 0
-    next = iterate(iter)
-    while next != nothing
-        i, state = next
-        next = iterate(iter, state)
-        num_iterations += 1
-    end
-    num_iterations > iterations && @warn("Maximum number of iterations reached without convergence")
-    return iter.positions
-end
-
-function iterate(network::Layout)
-    network.iterations == 0 && return nothing
-    s = stress(network.positions, network.δ, network.weights)
-    return network, (s, s, network.positions, 0)
-end
-
-function iterate(network::Layout, state)
-    newstress, oldstress, X0, i = state
-    δ, weights, pinvLw, positions, X0 = network.δ, network.weights, network.pinvLw, network.positions,
-                                        copy(network.positions)
-    # TODO the faster way is to drop the first row and col from the iteration
-    t = LZ(X0, δ, weights)
-    positions = pinvLw * (t * X0)
-    @assert all(x -> all(map(isfinite, x)), positions)
-    newstress, oldstress = stress(positions, δ, weights), newstress
-    network.positions[:] = positions
-
-    if i > network.iterations ||
-       abs(newstress - oldstress) < network.reltols * newstress ||
-       abs(newstress - oldstress) < network.abstols ||
-       norm(positions - X0) < network.abstolx
+    if i >= maxiter || stopflag
         return nothing
     end
 
-    return network, (newstress, oldstress, X0, (i + 1))
+    # TODO the faster way is to drop the first row and col from the iteration
+    t = LZ(oldpos, δ, weights)
+    positions = similar(oldpos) # allocate new array but keep type of oldpos
+    mul!(positions, pinvLw, (t * oldpos))
+    @assert all(x -> all(map(isfinite, x)), positions)
+    newstress = stress(positions, δ, weights)
 
+    if abs(newstress - oldstress) < algo.reltols * newstress ||
+       abs(newstress - oldstress) < algo.abstols ||
+       norm(positions - oldpos) < algo.abstolx
+        stopflag = true
+    end
+
+    return positions, (i + 1, newstress, positions, weights, pinvLw, maxiter, stopflag)
 end
 
 """
@@ -197,5 +205,3 @@ function LZ(Z::AbstractVector{Point{N,T}}, d, weights) where {N,T}
     end
     return L
 end
-
-end # end of module

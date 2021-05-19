@@ -1,5 +1,3 @@
-using NetworkLayout.Stress
-using NetworkLayout.Buchheim
 using NetworkLayout.Spectral
 using NetworkLayout.Shell
 using NetworkLayout.Circular
@@ -71,13 +69,39 @@ jagmesh_adj = jagmesh()
     end
 
     @testset "Testing Stress Majorization Algorithm" begin
+        using NetworkLayout: Stress
         println("Stress")
+        @testset "Stress construction" begin
+            algo = Stress()
+            @test algo isa Stress{2,Float64}
+            algo = Stress(; dim=3, Ptype=Int)
+            @test algo isa Stress{3,Int}
+            ip = [(1, 2.0, 3.0), (1, 2.0, 3)]
+            algo = Stress(; initialpos=ip)
+            @test algo isa Stress{3,Float64}
+            ip = [Point2f0(1, 2)]
+            algo = Stress(; initialpos=ip)
+            @test algo isa Stress{2,Float32}
+        end
+
+        @testset "iterator size" begin
+            for l in [1, 10, 100]
+                adj_matrix = adjacency_matrix(wheel_graph(10))
+                it = LayoutIterator(Stress(; iterations=l, abstolx=0.0, reltols=0.0, abstols=0.0), adj_matrix)
+                vec = Any[]
+                for p in it
+                    push!(vec, p)
+                end
+                @test length(vec) == l
+                @test length(unique!(vec)) == l
+            end
+        end
 
         @testset "Testing Jagmesh1 graph" begin
             println("Stress Jagmesh1")
-            positions = @time Stress.layout(jagmesh_adj, Point2f0; iterations=10)
+            positions = @time Stress(; iterations=10, Ptype=Float32)(jagmesh_adj)
             @test typeof(positions) == Vector{Point2f0}
-            positions = @time Stress.layout(jagmesh_adj, Point3f0; iterations=10)
+            positions = @time Stress(; iterations=10, dim=3, Ptype=Float32)(jagmesh_adj)
             @test typeof(positions) == Vector{Point3f0}
         end
 
@@ -85,9 +109,9 @@ jagmesh_adj = jagmesh()
             println("Stress wheel_graph")
             g = wheel_graph(10)
             adj_matrix = adjacency_matrix(g)
-            positions = @time Stress.layout(adj_matrix, Point2f0; iterations=10)
+            positions = @time Stress(; iterations=10, Ptype=Float32)(adj_matrix)
             @test typeof(positions) == Vector{Point2f0}
-            positions = @time Stress.layout(adj_matrix, Point3f0; iterations=10)
+            positions = @time Stress(; iterations=10, dim=3, Ptype=Float32)(adj_matrix)
             @test typeof(positions) == Vector{Point3f0}
         end
     end
