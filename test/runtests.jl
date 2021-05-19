@@ -169,17 +169,20 @@ jagmesh_adj = jagmesh()
     end
 
     @testset "Testing Circular Layout Algorithm" begin
+        using NetworkLayout: Circular
         println("Circular wheel_graph")
         @testset "Testing wheel_graph" begin
             g = wheel_graph(10)
             adj_matrix = adjacency_matrix(g)
-            positions = @time Circular.layout(adj_matrix)
+            positions = @time Circular()(adj_matrix)
             @test typeof(positions) == Vector{Point{2,Float64}}
+            positions = @time Circular(Ptype=Float32)(adj_matrix)
+            @test typeof(positions) == Vector{Point{2,Float32}}
         end
         @testset "Testing Base Case" begin
             g = Graph(1)
             adj_matrix = adjacency_matrix(g)
-            positions = @time Circular.layout(adj_matrix)
+            positions = @time Circular()(adj_matrix)
             @test typeof(positions) == Vector{Point{2,Float64}}
         end
     end
