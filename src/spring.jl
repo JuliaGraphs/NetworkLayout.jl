@@ -32,31 +32,35 @@ function Spring(; dim=2, Ptype=Float64, C=2.0, iterations=100, initialtemp=2.0, 
     return Spring{dim,Ptype}(C, iterations, initialtemp, initialpos)
 end
 
-function init(layout::Spring{Dim,Ptype}, adj_matrix) where {Dim,Ptype}
+function Base.iterate(iter::LayoutIterator{<:Spring{Dim, Ptype}}) where {Dim, Ptype}
+    algo, adj_matrix = iter.algorithm, iter.adj_matrix
     N = size(adj_matrix, 1)
-    M = length(layout.initialpos)
+    M = length(algo.initialpos)
     startpos = Vector{Point{Dim,Ptype}}(undef, N)
     # take the first
     for i in 1:min(N, M)
-        startpos[i] = layout.initialpos[i]
+        startpos[i] = algo.initialpos[i]
     end
     # fill the rest with random points
     for i in (M + 1):N
         startpos[i] = 2 .* rand(Point{Dim,Ptype}) .- 1
     end
-    return (startpos, 1)
+    # iteratorstate: #iter nr, old pos
+    return (startpos, (1, startpos))
 end
 
-function step(layout::Spring, adj_matrix, locs, iteration)
-    iteration >= layout.iterations && return nothing
+function Base.iterate(iter::LayoutIterator{<:Spring}, state)
+    algo, adj_matrix = iter.algorithm, iter.adj_matrix
+    iteration, old_pos = state
+    iteration >= algo.iterations && return nothing
 
     # The optimal distance bewteen vertices
     N = size(adj_matrix, 1)
-    force = similar(locs)
+    force = similar(old_pos)
     Ftype = eltype(force)
-    K = layout.C * sqrt(4.0 / N)
+    K = algo.C * sqrt(4.0 / N)
 
-    locs = copy(locs)
+    locs = copy(old_pos)
     # Calculate forces
     for i in 1:N
         force_vec = zero(Ftype)
@@ -81,7 +85,7 @@ function step(layout::Spring, adj_matrix, locs, iteration)
         force[i] = force_vec
     end
     # Cool down
-    temp = layout.initialtemp / iteration
+    temp = algo.initialtemp / iteration
     # Now apply them, but limit to temperature
     for i in 1:N
         force_mag = norm(force[i])
@@ -89,5 +93,5 @@ function step(layout::Spring, adj_matrix, locs, iteration)
         locs[i] += force[i] .* scale
     end
 
-    return locs, (iteration + 1)
+    return locs, (iteration + 1, locs)
 end

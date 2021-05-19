@@ -7,44 +7,34 @@ using LinearAlgebra: norm
 
 abstract type AbstractLayout{Dim,Ptype} end
 
+dim(::AbstractLayout{Dim, Ptype}) where {Dim,Ptype} = Dim
+ptype(::AbstractLayout{Dim, Ptype}) where {Dim,Ptype} = Ptype
+
 (lay::AbstractLayout)(adj_matrix) = layout(lay, adj_matrix)
 
 abstract type IterativeLayout{Dim,Ptype} <: AbstractLayout{Dim,Ptype} end
 
-mutable struct LayoutIterator{Dim,Ptype,T<:IterativeLayout{Dim,Ptype},M<:AbstractMatrix}
+struct LayoutIterator{T<:IterativeLayout,M<:AbstractMatrix}
     algorithm::T
     adj_matrix::M
-    positions::Vector{Point{Dim,Ptype}}
-    function LayoutIterator(algorithm::T, matrix::M) where {Dim,Ptype,T<:AbstractLayout{Dim,Ptype},M}
-        new{Dim,Ptype,T,M}(algorithm, matrix, Point{Dim,Ptype}[])
-    end
-end
-
-function Base.iterate(iter::LayoutIterator)
-    iter.positions, state = init(iter.algorithm, iter.adj_matrix)
-    (iter.positions, state)
-end
-
-function Base.iterate(iter::LayoutIterator, state)
-    next = step(iter.algorithm, iter.adj_matrix, iter.positions, state)
-
-    next == nothing && return nothing
-
-    iter.positions, newstate = next
-    return (iter.positions, newstate)
 end
 
 function layout(alg::IterativeLayout, adj_matrix)
-    iterable = LayoutIterator(alg, adj_matrix)
-    for pos in iterable
+    iter = LayoutIterator(alg, adj_matrix)
+    next = Base.iterate(iter)
+    pos = next[1]
+    while next !== nothing
+        (item, state) = next
+        next = Base.iterate(iter, state)
+        pos = next !== nothing ? item : pos
     end
-    return iterable.positions
+    return pos
 end
 
 include("sfdp.jl")
 include("buchheim.jl")
 include("spring.jl")
-# include("stress.jl")
+include("stress.jl")
 # include("spectral.jl")
 # include("circular.jl")
 # include("shell.jl")

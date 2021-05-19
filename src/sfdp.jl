@@ -30,31 +30,32 @@ function SFDP(; dim=2, Ptype=Float64, tol=1.0, C=0.2, K=1.0, iterations=100, ini
     return SFDP{dim,Ptype,typeof(tol)}(tol, C, K, iterations, initialpos)
 end
 
-function init(layout::SFDP{Dim,Ptype,T}, adj_matrix) where {Dim,Ptype,T}
+function Base.iterate(iter::LayoutIterator{SFDP{Dim,Ptype,T}}) where {Dim,Ptype,T}
+    algo, adj_matrix = iter.algorithm, iter.adj_matrix
     N = size(adj_matrix, 1)
-    M = length(layout.initialpos)
+    M = length(algo.initialpos)
     startpos = Vector{Point{Dim,Ptype}}(undef, N)
     # take the first
     for i in 1:min(N, M)
-        startpos[i] = layout.initialpos[i]
+        startpos[i] = algo.initialpos[i]
     end
     # fill the rest with random points
     for i in (M + 1):N
         startpos[i] = 2 .* rand(Point{Dim,Ptype}) .- 1
     end
-    # the `state` of the iterator is (#iter, energy, step, progress, stopflag)
-    return startpos, (1, typemax(T), one(T), 0, false)
+    # iteratorstate: (#iter, energy, step, progress, old pos, stopflag)
+    return startpos, (1, typemax(T), one(T), 0, startpos, false)
 end
 
-function step(layout::SFDP, adj_matrix, locs0, state)
-    iter, energy0, step, progress, stopflag = state
+function Base.iterate(iter::LayoutIterator{<:SFDP}, state)
+    algo, adj_matrix = iter.algorithm, iter.adj_matrix
+    iter, energy0, step, progress, locs0, stopflag = state
+    K, C, tol = algo.K, algo.C, algo.tol
 
     # stop if stopflag (tol reached) or nr of iterations reached
-    if iter >= layout.iterations || stopflag
+    if iter >= algo.iterations || stopflag
         return nothing
     end
-
-    K, C, tol = layout.K, layout.C, layout.tol
 
     locs = copy(locs0)
     energy = zero(energy0)
@@ -84,7 +85,7 @@ function step(layout::SFDP, adj_matrix, locs0, state)
         stopflag = true
     end
 
-    return locs, (iter+1, energy, step, progress, stopflag)
+    return locs, (iter+1, energy, step, progress, locs, stopflag)
 end
 
 # Calculate Attractive force
