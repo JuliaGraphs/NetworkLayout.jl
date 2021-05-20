@@ -39,15 +39,4 @@ include("spectral.jl")
 include("circular.jl")
 include("shell.jl")
 
-
-# XXX TODO FIXME incredible hacky solution, bootstrapping problem betwen GraphMakie and NetworkLayout
-# this is needed right now to crate the docs...
-function Base.getproperty(x::Type, s::Symbol)
-    if s===:layout && x == getfield(NetworkLayout, :Spring)
-        return Spring()
-    else
-        return getfield(x, s)
-    end
-end
-
 end
