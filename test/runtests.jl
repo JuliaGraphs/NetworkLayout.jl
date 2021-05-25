@@ -17,7 +17,6 @@ jagmesh_adj = jagmesh()
 
 @testset "Testing NetworkLayout" begin
     @testset "Testing SFDP" begin
-        using NetworkLayout: SFDP
         println("SFDP")
         @testset "SFDP construction" begin
             algo = SFDP()
@@ -65,7 +64,6 @@ jagmesh_adj = jagmesh()
     end
 
     @testset "Testing Stress Majorization Algorithm" begin
-        using NetworkLayout: Stress
         println("Stress")
         @testset "Stress construction" begin
             algo = Stress()
@@ -113,7 +111,6 @@ jagmesh_adj = jagmesh()
     end
 
     @testset "Testing Spring Algorithm" begin
-        using NetworkLayout: Spring
         println("Spring wheel_graph")
         @testset "Spring construction" begin
             algo = Spring()
@@ -152,7 +149,6 @@ jagmesh_adj = jagmesh()
     end
 
     @testset "Testing Spectral Algorithm" begin
-        using NetworkLayout: Spectral
         println("Spectral wheel_graph")
         @testset "Testing wheel_graph" begin
             g = wheel_graph(10)
@@ -165,7 +161,6 @@ jagmesh_adj = jagmesh()
     end
 
     @testset "Testing Circular Layout Algorithm" begin
-        using NetworkLayout: Circular
         println("Circular wheel_graph")
         @testset "Testing wheel_graph" begin
             g = wheel_graph(10)
@@ -184,7 +179,6 @@ jagmesh_adj = jagmesh()
     end
 
     @testset "Testing Shell Layout Algorithm" begin
-        using NetworkLayout: Shell
         println("Shell wheel_graph")
 
         @testset "Testing wheel_graph" begin
@@ -203,7 +197,6 @@ jagmesh_adj = jagmesh()
 
     @testset "Testing Buchheim Tree Drawing" begin
         println("Buchheim")
-        using NetworkLayout: Buchheim
         using NetworkLayout: adj_mat_to_list
 
         @testset "matrix -> list conversion" begin

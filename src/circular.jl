@@ -1,3 +1,5 @@
+export Circular
+
 """
     Circular(; kwargs...)(adj_matrix)
     layout(algo::Circular, adj_matrix)

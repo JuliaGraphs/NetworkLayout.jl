@@ -1,3 +1,5 @@
+export Spring
+
 """
     Spring(; kwargs...)(adj_matrix)
     layout(algo::Spring, adj_matrix)

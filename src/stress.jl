@@ -1,6 +1,8 @@
 using LinearAlgebra: checksquare, norm, pinv, mul!
 using SparseArrays: SparseMatrixCSC
 
+export Stress
+
 """
     Stress(; kwargs...)(adj_matrix)
     layout(algo::Stress, adj_matrix)

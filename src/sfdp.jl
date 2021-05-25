@@ -1,3 +1,5 @@
+export SFDP
+
 """
     SFDP(; kwargs...)(adj_matrix)
     layout(algo::SFDP, adj_matrix)

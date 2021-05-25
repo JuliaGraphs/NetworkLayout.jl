@@ -1,3 +1,5 @@
+export Shell
+
 """
     Shell(; kwargs...)(adj_matrix)
     layout(algo::Shell, adj_matrix)

@@ -35,7 +35,6 @@ SFDP
 ```
 ### Example
 ```@example layouts
-using NetworkLayout: SFDP
 g = wheel_graph(10)
 layout = SFDP(tol=0.01, C=0.2, K=1)
 f, ax, p = graphplot(g, layout=layout)
@@ -59,8 +58,6 @@ Buchheim
 ```
 ### Example
 ```@example layouts
-using NetworkLayout: Buchheim
-
 adj_matrix = [0 1 1 0 0 0 0 0 0 0;
               0 0 0 0 1 1 0 0 0 0;
               0 0 0 1 0 0 1 0 1 0;
@@ -83,7 +80,6 @@ Spring
 ```
 ### Example
 ```@example layouts
-using NetworkLayout: Spring
 g = smallgraph(:cubical)
 layout = Spring()
 f, ax, p = graphplot(g, layout=layout)
@@ -106,7 +102,6 @@ Stress
 ```
 ### Example
 ```@example layouts
-using NetworkLayout: Stress
 g = complete_graph(10)
 layout = Stress()
 Random.seed!(1)
@@ -130,7 +125,6 @@ nothing #hide
 Circular
 ```
 ```@example layouts
-using NetworkLayout: Circular
 g = smallgraph(:karate)
 layout = Circular()
 f, ax, p = graphplot(g, layout=layout)
@@ -142,7 +136,6 @@ hidedecorations!(ax); hidespines!(ax); ax.aspect = DataAspect(); f #hide
 Shell
 ```
 ```@example layouts
-using NetworkLayout: Shell
 g = smallgraph(:petersen)
 layout = Shell(nlist=[6:10,])
 f, ax, p = graphplot(g, layout=layout)

@@ -1,3 +1,5 @@
+export Buchheim
+
 """
     Buchheim(; kwargs...)(adj_matrix)
     Buchheim(; kwargs...)(adj_list)

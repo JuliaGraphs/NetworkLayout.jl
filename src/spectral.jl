@@ -1,5 +1,7 @@
 using LinearAlgebra: diag, eigen, Diagonal
 
+export Spectral
+
 """
     Spectral(; kwargs...)(adj_matrix)
     layout(algo::Spectral, adj_matrix)
