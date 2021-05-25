@@ -11,7 +11,8 @@ makedocs(; modules=[NetworkLayout],
          sitename="NetworkLayout.jl",
          format=Documenter.HTML(; prettyurls=get(ENV, "CI", "false") == "true",
                                 canonical="https://juliagraphs.org/NetworkLayout.jl", assets=String[]),
-         pages=["Home" => "index.md",])
+         pages=["Home" => "index.md",
+                "Interface" => "interface.md"])
 
 # if gh_pages branch gets to big, check out
 # https://juliadocs.github.io/Documenter.jl/stable/man/hosting/#gh-pages-Branch
