@@ -13,13 +13,13 @@ CairoMakie.activate!(type="png") # hide
 set_theme!(resolution=(800, 400)) #hide
 CairoMakie.inline!(true) # hide
 using NetworkLayout
-using GraphMakie, LightGraphs, LightGraphs
+using GraphMakie, LightGraphs
 import Random; Random.seed!(2) # hide
 nothing #hide
 ```
 
 # Basic Usage & Algorithms
-All of the algorithms follow the [layout interface](@ref). Each layout algorithm
+All of the algorithms follow the [Layout Interface](@ref). Each layout algorithm
 is represented by a type `Algorithm <: AbstractLayout`. The parameters of each
 algorithm can be set with keyword arguments. The `Algorithm` object itself is
 callable and transforms the adjacency matrix and returns a list of `Point{N,T}` from [`GeometryBasics.jl`](https://github.com/JuliaGeometry/GeometryBasics.jl).
@@ -39,8 +39,19 @@ using NetworkLayout: SFDP
 g = wheel_graph(10)
 layout = SFDP(tol=0.01, C=0.2, K=1)
 f, ax, p = graphplot(g, layout=layout)
-hidedecorations!(ax); hidespines!(ax); ax.aspect = DataAspect(); f #hide
+hidedecorations!(ax); hidespines!(ax); ax.aspect = DataAspect(); f
 ```
+
+### Iterator Example
+```@example layouts
+iterator = LayoutIterator(layout, adjacency_matrix(g))
+record(f, "sfdp_animation.mp4", iterator; framerate = 10) do pos
+    p[:node_positions][] = pos
+    autolimits!(ax)
+end
+nothing #hide
+```
+![sfdp animation](sfdp_animation.mp4)
 
 ## Buchheim Tree Drawing
 ```@docs
@@ -51,7 +62,6 @@ Buchheim
 using NetworkLayout: Buchheim
 
 adj_matrix = [0 1 1 0 0 0 0 0 0 0;
-
               0 0 0 0 1 1 0 0 0 0;
               0 0 0 1 0 0 1 0 1 0;
               0 0 0 0 0 0 0 0 0 0;
@@ -79,6 +89,16 @@ layout = Spring()
 f, ax, p = graphplot(g, layout=layout)
 hidedecorations!(ax); hidespines!(ax); ax.aspect = DataAspect(); f #hide
 ```
+### Iterator Example
+```@example layouts
+iterator = LayoutIterator(layout, adjacency_matrix(g))
+record(f, "spring_animation.mp4", iterator; framerate = 10) do pos
+    p[:node_positions][] = pos
+    autolimits!(ax)
+end
+nothing #hide
+```
+![spring animation](spring_animation.mp4)
 
 ## Stress Majorization
 ```@docs
@@ -92,8 +112,18 @@ layout = Stress()
 Random.seed!(1)
 f, ax, p = graphplot(g, layout=layout)
 hidedecorations!(ax); hidespines!(ax); ax.aspect = DataAspect(); f #hide
-
 ```
+
+### Iterator Example
+```@example layouts
+iterator = LayoutIterator(layout, adjacency_matrix(g))
+record(f, "stress_animation.mp4", iterator; framerate = 100) do pos
+    p[:node_positions][] = pos
+    autolimits!(ax)
+end
+nothing #hide
+```
+![stress animation](stress_animation.mp4)
 
 ##  Circular Layout
 ```@docs
@@ -120,6 +150,9 @@ hidedecorations!(ax); hidespines!(ax); ax.aspect = DataAspect(); f #hide
 ```
 
 ## Spectral
+```@docs
+Spectral
+```
 Spectral needs 3d which isn't ready yet on the GraphMakie side.
 ```
 using JSServe
