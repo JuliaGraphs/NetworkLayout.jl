@@ -1,15 +1,25 @@
 """
-Using the Spring-Electric model suggested by Yifan Hu
-(http://yifanhu.net/PUB/graph_draw_small.pdf)
-Forces are calculated as :
-        f_attr(i,j) = ||xi - xj||^2 / K ,     i<->j
-        f_repln(i,j) = -CK^2 / ||xi - xj|| ,  i!=j
-Arguments :
-  adj_matrix      Sparse/Full Adjacency matrix of the graph
-  tol             Tolerance distance - Minimum distance between 2 nodes
-  C, K            Constants that help scale the layout
-Output :
-  positions       Co-ordinates for the nodes
+    SFDP(; kwargs...)(adj_matrix)
+    layout(algo::SFDP, adj_matrix)
+
+Using the Spring-Electric [model suggested by Yifan Hu](http://yifanhu.net/PUB/graph_draw_small.pdf).
+Forces are calculated as:
+
+        f_attr(i,j) = ‖xi - xj‖ ² / K ,    i<->j
+        f_repln(i,j) = -CK² / ‖xi - xj‖ ,  i!=j
+
+Takes adjacency matrix representation of a network and returns coordinates of
+the nodes.
+
+## Keyword Arguments
+- `dim=2`, `Ptype=Float64`: Determines dimension and output type `Point{dim,Ptype}`.
+- `tol=1.0`: Stop if position changes of last step `Δp <= tol*K` for all nodes
+- `C=0.2`, `K=1.0`: Parameters to tweak forces.
+- `iterations=100`: maximum number of iterations
+- `initialpos=Point{dim,Ptype}[]`
+
+  Provide list of initial positions. If length does not match Network size the initial
+  positions will be truncated or filled up with random values between [-1,1] in every coordinate.
 """
 struct SFDP{Dim,Ptype,T<:AbstractFloat} <: IterativeLayout{Dim,Ptype}
     tol::T
@@ -19,6 +29,7 @@ struct SFDP{Dim,Ptype,T<:AbstractFloat} <: IterativeLayout{Dim,Ptype}
     initialpos::Vector{Point{Dim,Ptype}}
 end
 
+# TODO: check SFDP default parameters
 function SFDP(; dim=2, Ptype=Float64, tol=1.0, C=0.2, K=1.0, iterations=100, initialpos=Point{dim,Ptype}[])
     if !isempty(initialpos)
         initialpos = Point.(initialpos)

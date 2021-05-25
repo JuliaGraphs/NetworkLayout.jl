@@ -2,40 +2,46 @@ using LinearAlgebra: checksquare, norm, pinv, mul!
 using SparseArrays: SparseMatrixCSC
 
 """
-Compute graph layout using stress majorization
+    Stress(; kwargs...)(adj_matrix)
+    layout(algo::Stress, adj_matrix)
 
-Inputs:
+Compute graph layout using stress majorization. Takes adjacency matrix
+representation of a network and returns coordinates of the nodes.
 
-    δ: Matrix of pairwise distances
-    p: Dimension of embedding (default: 2)
-    weights: Matrix of weights. If not specified, defaults to
-           weights[i,j] = δ[i,j]^-2 if δ[i,j] is nonzero, or 0 otherwise
-    X0: Initial guess for the layout. Coordinates are given in rows.
-        If not specified, default to random matrix of Gaussians
+## Inputs:
+- `adj_matrix`: Matrix of pairwise distances.
 
-Additional optional keyword arguments control the convergence of the algorithm
-and the additional output as requested:
+## Keyword Arguments
+- `dim=2`, `Ptype=Float64`: Determines dimension and output type `Point{dim,Ptype}`.
+- `iterations=:auto`: maximum number of iterations (`:auto` means `400*N^2` where `N` are the number of vertices)
+- `abstols=(√(eps(Float64)))`
 
-    iterations:   Maximum number of iterations. Default: 400size(X0, 1)^2
-    abstols:      Absolute tolerance for convergence of stress.
-                  The iterations terminate if the difference between two
-                  successive stresses is less than abstol.
-                  Default: √(eps(eltype(X0))
-    reltols:      Relative tolerance for convergence of stress.
-                  The iterations terminate if the difference between two
-                  successive stresses relative to the current stress is less than
-                  reltol. Default: √(eps(eltype(X0))
-    abstolx:      Absolute tolerance for convergence of layout.
-                  The iterations terminate if the Frobenius norm of two successive
-                  layouts is less than abstolx. Default: √(eps(eltype(X0))
+   Absolute tolerance for convergence of stress. The iterations terminate if the
+   difference between two successive stresses is less than abstol.
 
-Output:
+- `reltols=(√(eps(Float64)))`
 
-    The final layout positions.
+  Relative tolerance for convergence of stress. The iterations terminate if the
+  difference between two successive stresses relative to the current stress is
+  less than reltol.
 
-Reference:
+- `abstolx=(√(eps(Float64)))`
 
-    The main equation to solve is (8) of:
+  Absolute tolerance for convergence of layout. The iterations terminate if the
+  Frobenius norm of two successive layouts is less than abstolx.
+
+- `weights=Array{Float64}(undef, 0, 0)`
+
+  Matrix of weights. If empty (i.e. not specified), defaults to `weights[i,j] = δ[i,j]^-2` if
+  `δ[i,j]` is nonzero, or `0` otherwise.
+
+- `initialpos=Point{dim,Ptype}[]`
+
+  Provide list of initial positions. If length does not match Network size the initial
+  positions will be truncated or filled up with random normal distributed values in every coordinate.
+
+## Reference:
+The main equation to solve is (8) of:
 
     @incollection{
         author = {Emden R Gansner and Yehuda Koren and Stephen North},
@@ -93,7 +99,7 @@ function Base.iterate(iter::LayoutIterator{<:Stress{Dim,Ptype,IT,FT}}) where {Di
     end
     # fill the rest with random points
     for i in (M + 1):N
-        startpos[i] = 2 .* rand(Point{Dim,Ptype}) .- 1
+        startpos[i] = randn(Point{Dim,Ptype})
     end
 
     # calculate iteration if :auto

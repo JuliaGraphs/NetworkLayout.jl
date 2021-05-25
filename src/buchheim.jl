@@ -1,16 +1,23 @@
 """
+    Buchheim(; kwargs...)(adj_matrix)
+    Buchheim(; kwargs...)(adj_list)
+    layout(algo::Buchheim, adj_matrix)
+    layout(algo::Buchheim, adj_list)
+
 Using the algorithm proposed in the paper,
-"Improving Walker's Algorithm to Run in Linear Time"
+["Improving Walker's Algorithm to Run in Linear Time"](http://dirk.jivas.de/papers/buchheim02improving.pdf)
 by Christoph Buchheim, Michael Junger, Sebastian Leipert
-(http://dirk.jivas.de/papers/buchheim02improving.pdf)
 
-Arguments
-tree    Adjacency List that represents the given tree
+Takes adjacency matrix or list representation of given tree
+and returns coordinates of the nodes.
 
-Returns
-positions     co-ordinates of the layout
+## Keyword Arguments
+- `Ptype=Float64`: Determines the output type `Point{2,Ptype}`.
+- `nodesize=Float64[]`
+
+  Determines the size of each of the node. If network size does not match the
+  length of `nodesize` fill up with `ones` or truncate given parameter.
 """
-
 struct Buchheim{Ptype,T} <: AbstractLayout{2,Ptype}
     nodesize::Vector{T}
 end

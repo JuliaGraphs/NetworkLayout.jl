@@ -1,15 +1,26 @@
 using LinearAlgebra: diag, eigen, Diagonal
 
-# -----------------------------------------------------
-# -----------------------------------------------------
+"""
+    Spectral(; kwargs...)(adj_matrix)
+    layout(algo::Spectral, adj_matrix)
 
-# see: http://www.research.att.com/export/sites/att_labs/groups/infovis/res/legacy_papers/DBLP-journals-camwa-Koren05.pdf
-# also: http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.3.2055&rep=rep1&type=pdf
+This algorithm uses the technique of Spectral Graph Drawing, which is an
+under-appreciated method of graph layouts; easier, simpler, and faster
+than the more common spring-based methods. For reference see
 
-# this recipe uses the technique of Spectral Graph Drawing, which is an
-# under-appreciated method of graph layouts; easier, simpler, and faster
-# than the more common spring-based methods.
+- <http://www.research.att.com/export/sites/att_labs/groups/infovis/res/legacy_papers/DBLP-journals-camwa-Koren05.pdf>
+- <http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.3.2055&rep=rep1&type=pdf>
 
+Takes adjacency matrix representation of a network and returns coordinates of
+the nodes.
+
+## Keyword Arguments
+- `Ptype=Float64`: Determines the output type `Point{3,Ptype}`.
+- `nodeweights=Float64[]`
+
+  Vector of weights. If network size does not match the length of `nodesize` use
+  `ones` instead.
+"""
 struct Spectral{Ptype,FT<:AbstractFloat} <: AbstractLayout{3,Ptype}
     nodeweights::Vector{FT}
 end

@@ -1,25 +1,27 @@
 """
-This function is copy from [IainNZ](https://github.com/IainNZ)'s [GraphLayout.jl](https://github.com/IainNZ/GraphLayout.jl)
-Position nodes in concentric circles.
-**Parameters**
-*adj_matrix*
-a graph
-*nlist*
-Vector of Vector, Vector of node Vector for each shell.
-**Examples**
-```
-julia> g = graphfamous("karate")
-julia> nlist = Array(Vector{Int}, 2)
-julia> nlist[1] = [1:5]
-julia> nlist[2] = [6:num_vertiecs(g)]
-julia> locs_x, locs_y = shell_layout(g, nlist)
-```
+    Shell(; kwargs...)(adj_matrix)
+    layout(algo::Shell, adj_matrix)
+
+Position nodes in conenctric circles.
+
+Takes adjacency matrix representation of a network and returns coordinates of
+the nodes.
+
+## Keyword Arguments
+- `Ptype=Float64`: Determines the output type `Point{2,Ptype}`.
+- `nlist=Vector{Int}[]`
+
+  List of node-lists for each shell from inner to outer. Tells the algorithm
+  which node idx to place on which circle. Nodes which are not present in this
+  list will be place on additional outermost shell.
+
+This function started as a copy from [IainNZ](https://github.com/IainNZ)'s [GraphLayout.jl](https://github.com/IainNZ/GraphLayout.jl)
 """
 struct Shell{Ptype} <: AbstractLayout{2,Ptype}
     nlist::Vector{Vector{Int}}
 end
 
-Shell(; Ptype=Float64, nlist=Int[]) = Shell{Ptype}(nlist)
+Shell(; Ptype=Float64, nlist=Vector{Int}[]) = Shell{Ptype}(nlist)
 
 function layout(algo::Shell{Ptype}, adj_matrix) where {Ptype}
     if size(adj_matrix, 1) == 1

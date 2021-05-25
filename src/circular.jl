@@ -1,18 +1,14 @@
 """
-This function wrap from [NetworkX](https://github.com/networkx/networkx)
-Position nodes on a circle.
-**Parameters**
-*adj_matrix*
-a graph
-**Returns**
-*locs_x, locs_y*
-Locations of the nodes. Can be any units you want,
-but will be normalized and centered anyway
-**Examples**
-```
-julia> g = simple_house_graph()
-julia> locs_x, locs_y = circular_layout(g)
-```
+    Circular(; kwargs...)(adj_matrix)
+    layout(algo::Circular, adj_matrix)
+
+Position nodes on a circle with radius 1.
+
+Takes adjacency matrix representation of a network and returns coordinates of
+the nodes.
+
+## Keyword Arguments
+- `Ptype=Float64`: Determines the output type `Point{2,Ptype}`.
 """
 struct Circular{Ptype} <: AbstractLayout{2,Ptype} end
 

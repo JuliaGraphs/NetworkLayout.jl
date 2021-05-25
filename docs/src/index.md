@@ -11,7 +11,7 @@ All example images on this page are created using [`Makie.jl`](https://github.co
 using CairoMakie
 CairoMakie.activate!(type="png") # hide
 set_theme!(resolution=(800, 400)) #hide
-AbstractPlotting.inline!(true) # hide
+CairoMakie.inline!(true) # hide
 using NetworkLayout
 using GraphMakie, LightGraphs, LightGraphs
 import Random; Random.seed!(2) # hide

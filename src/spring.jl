@@ -1,18 +1,28 @@
 """
-    Use the spring/repulsion model of Fruchterman and Reingold (1991):
-        Attractive force:  f_a(d) =  d^2 / k
-        Repulsive force:  f_r(d) = -k^2 / d
-    where d is distance between two vertices and the optimal distance
-    between vertices k is defined as C * sqrt( area / num_vertices )
-    where C is a parameter we can adjust
+    Spring(; kwargs...)(adj_matrix)
+    layout(algo::Spring, adj_matrix)
 
-    Arguments:
-    adj_matrix    Adjacency matrix of some type. Non-zero of the eltype
-                  of the matrix is used to determine if a link exists,
-                  but currently no sense of magnitude
-    C             Constant to fiddle with density of resulting layout
-    iterations    Number of iterations we apply the forces
-    initialtemp   Initial "temperature", controls movement per iteration
+Use the spring/repulsion model of Fruchterman and Reingold (1991) with
+
+- Attractive force:  `f_a(d) =  d^2 / k`
+- Repulsive force:  `f_r(d) = -k^2 / d`
+
+where `d` is distance between two vertices and the optimal distance between
+vertices `k` is defined as `C * sqrt( area / num_vertices )` where `C` is a parameter
+we can adjust
+
+Takes adjacency matrix representation of a network and returns coordinates of
+the nodes.
+
+## Keyword Arguments
+- `dim=2`, `Ptype=Float64`: Determines dimension and output type `Point{dim,Ptype}`.
+- `C=2.0`: Constant to fiddle with density of resulting layout
+- `iterations=100`: maximum number of iterations
+- `initialtemp=2.0`: Initial "temperature", controls movement per iteration
+- `initialpos=Point{dim,Ptype}[]`
+
+  Provide list of initial positions. If length does not match Network size the initial
+  positions will be truncated or filled up with random values between [-1,1] in every coordinate.
 """
 struct Spring{Dim,Ptype} <: IterativeLayout{Dim,Ptype}
     C::Float64
