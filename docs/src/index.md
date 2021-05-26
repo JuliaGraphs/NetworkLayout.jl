@@ -142,6 +142,17 @@ f, ax, p = graphplot(g, layout=layout)
 hidedecorations!(ax); hidespines!(ax); ax.aspect = DataAspect(); f #hide
 ```
 
+## SquareGrid Layout
+```@docs
+SquareGrid
+```
+```@example layouts
+g = path_graph(21)
+layout = SquareGrid(skip=[(1,2), (3,4)])
+f, ax, p = graphplot(g, layout=layout, nlabels=repr.(1:21), nlabels_textsize=15)
+hidedecorations!(ax); hidespines!(ax); ax.aspect = DataAspect(); f #hide
+```
+
 ## Spectral
 ```@docs
 Spectral

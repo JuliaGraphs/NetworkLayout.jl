@@ -245,4 +245,33 @@ jagmesh_adj = jagmesh()
             @test typeof(locs) == Vector{Point{2,Float64}}
         end
     end
+
+    @testset "Testing Square Grid Layout" begin
+        println("SquareGrid")
+        @testset "Testing col length" begin
+            M = adjacency_matrix(SimpleGraph(4))
+            positions = SquareGrid(; Ptype=Int)(M)
+            @test positions == Point2.([(0, 0), (1, 0), (0, -1), (1, -1)])
+
+            M = adjacency_matrix(SimpleGraph(3))
+            positions = SquareGrid(; Ptype=Int)(M)
+            @test positions == Point2.([(0, 0), (1, 0), (0, -1)])
+
+            M = adjacency_matrix(SimpleGraph(5))
+            positions = SquareGrid(; Ptype=Int, cols=2)(M)
+            @test positions == Point2.([(0, 0), (1, 0), (0, -1), (1, -1), (0, -2)])
+        end
+
+        @testset "Testing dx,dy" begin
+            M = adjacency_matrix(SimpleGraph(4))
+            positions = SquareGrid(; Ptype=Int, dx=2, dy=3)(M)
+            @test positions == Point2.([(0, 0), (2, 0), (0, 3), (2, 3)])
+        end
+
+        @testset "Testing skip" begin
+            M = adjacency_matrix(SimpleGraph(4))
+            positions = SquareGrid(; Ptype=Int, skip=[(1, 1), (2, 2)])(M)
+            @test positions == Point2.([(1, 0), (2, 0), (0, -1), (2, -1)])
+        end
+    end
 end
