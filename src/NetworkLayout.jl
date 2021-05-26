@@ -6,9 +6,9 @@ using GeometryBasics
 using LinearAlgebra: norm
 
 """
-    abstract type AbstractLayout{Dim,Ptype} end
+    AbstractLayout{Dim,Ptype}
 
-Supertype for all layouts. Each layout `Algorithm <: AbstractLayout` needs to
+Abstract supertype for all layouts. Each layout `Algorithm <: AbstractLayout` needs to
 implement
 
     layout(algo::Algorithm, adj_matrix)::Vector{Point{Dim,Ptype}}
@@ -28,9 +28,9 @@ ptype(::AbstractLayout{Dim,Ptype}) where {Dim,Ptype} = Ptype
 (lay::AbstractLayout)(adj_matrix) = layout(lay, adj_matrix)
 
 """
-    abstract type IterativeLayout{Dim,Ptype} <: AbstractLayout{Dim,Ptype} end
+    IterativeLayout{Dim,Ptype} <: AbstractLayout{Dim,Ptype}
 
-Supertype for iterative layouts. Instead of implementing `layout` directly,
+Abstract supertype for iterative layouts. Instead of implementing `layout` directly,
 subtypes `Algorithm<:IterativeLayout` need to implement the [iterator
 interface](https://docs.julialang.org/en/v1/manual/interfaces/#man-interface-iteration)
 
@@ -49,7 +49,7 @@ function-like call
 abstract type IterativeLayout{Dim,Ptype} <: AbstractLayout{Dim,Ptype} end
 
 """
-    LayoutIterator(algorithm::IterativeLayout, adj_matrix)
+    LayoutIterator{T<:IterativeLayout,M<:AbstractMatrix}(algorithm, adj_matrix)
 
 This type bundles an [`IterativeLayout`](@ref) with an adjacency matrix to form an
 iterable object whose items are the node positions.
