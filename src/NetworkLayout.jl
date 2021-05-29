@@ -1,9 +1,10 @@
 module NetworkLayout
 
-export LayoutIterator, layout
-
 using GeometryBasics
+using Requires
 using LinearAlgebra: norm
+
+export LayoutIterator, layout
 
 """
     AbstractLayout{Dim,Ptype}
@@ -66,7 +67,7 @@ struct LayoutIterator{T<:IterativeLayout,M<:AbstractMatrix}
     adj_matrix::M
 end
 
-function layout(alg::IterativeLayout, adj_matrix)
+function layout(alg::IterativeLayout, adj_matrix::AbstractMatrix)
     iter = LayoutIterator(alg, adj_matrix)
     next = Base.iterate(iter)
     pos = next[1]
@@ -76,6 +77,10 @@ function layout(alg::IterativeLayout, adj_matrix)
         pos = next !== nothing ? item : pos
     end
     return pos
+end
+
+function __init__()
+    @require LightGraphs="093fc24a-ae57-5d10-9952-331d41423f4d" layout(l::AbstractLayout, g::LightGraphs.AbstractGraph) = layout(l, LightGraphs.adjacency_matrix(g))
 end
 
 include("sfdp.jl")

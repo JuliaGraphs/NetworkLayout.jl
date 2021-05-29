@@ -16,7 +16,7 @@ struct Circular{Ptype} <: AbstractLayout{2,Ptype} end
 
 Circular(; Ptype=Float64) = Circular{Ptype}()
 
-function layout(::Circular{Ptype}, adj_matrix) where {Ptype}
+function layout(::Circular{Ptype}, adj_matrix::AbstractMatrix) where {Ptype}
     if size(adj_matrix, 1) == 1
         return Point{2,Ptype}[Point(0.0, 0.0)]
     else

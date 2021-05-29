@@ -274,4 +274,11 @@ jagmesh_adj = jagmesh()
             @test positions == Point2.([(1, 0), (2, 0), (0, -1), (2, -1)])
         end
     end
+
+    @testset "test LightGraphs glue code" begin
+        println("Test LightGraphs glue code")
+        g = complete_graph(10)
+        pos = Spring()(g)
+        @test pos isa Vector{Point{2,Float64}}
+    end
 end

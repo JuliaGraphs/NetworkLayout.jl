@@ -25,7 +25,7 @@ end
 
 Shell(; Ptype=Float64, nlist=Vector{Int}[]) = Shell{Ptype}(nlist)
 
-function layout(algo::Shell{Ptype}, adj_matrix) where {Ptype}
+function layout(algo::Shell{Ptype}, adj_matrix::AbstractMatrix) where {Ptype}
     if size(adj_matrix, 1) == 1
         return Point{2,Float64}[Point(0.0, 0.0)]
     end

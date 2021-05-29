@@ -55,7 +55,7 @@ function compute_laplacian(adj_matrix, node_weights)
     return L, D
 end
 
-function layout(algo::Spectral{Ptype,FT}, adj_matrix) where {Ptype,FT}
+function layout(algo::Spectral{Ptype,FT}, adj_matrix::AbstractMatrix) where {Ptype,FT}
     # try to use user provided nodeweights
     nodeweights = if length(algo.nodeweights) == size(adj_matrix, 1)
         algo.nodeweights
