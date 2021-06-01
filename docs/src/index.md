@@ -14,7 +14,6 @@ set_theme!(resolution=(800, 400)) #hide
 CairoMakie.inline!(true) # hide
 using NetworkLayout
 using GraphMakie, LightGraphs
-import Random; Random.seed!(2) # hide
 nothing #hide
 ```
 
@@ -104,7 +103,6 @@ Stress
 ```@example layouts
 g = complete_graph(10)
 layout = Stress()
-Random.seed!(1)
 f, ax, p = graphplot(g, layout=layout)
 hidedecorations!(ax); hidespines!(ax); ax.aspect = DataAspect(); f #hide
 ```
@@ -112,7 +110,7 @@ hidedecorations!(ax); hidespines!(ax); ax.aspect = DataAspect(); f #hide
 ### Iterator Example
 ```@example layouts
 iterator = LayoutIterator(layout, adjacency_matrix(g))
-record(f, "stress_animation.mp4", iterator; framerate = 100) do pos
+record(f, "stress_animation.mp4", iterator; framerate = 10) do pos
     p[:node_positions][] = pos
     autolimits!(ax)
 end

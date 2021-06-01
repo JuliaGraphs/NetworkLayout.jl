@@ -42,6 +42,8 @@ representation of a network and returns coordinates of the nodes.
   Provide list of initial positions. If length does not match Network size the initial
   positions will be truncated or filled up with random normal distributed values in every coordinate.
 
+- `seed=1`: Seed for random initial positions.
+
 ## Reference:
 The main equation to solve is (8) of:
 
@@ -67,11 +69,12 @@ struct Stress{Dim,Ptype,IT<:Union{Symbol,Int},FT<:AbstractFloat,M<:AbstractMatri
     abstolx::FT
     weights::M
     initialpos::Vector{Point{Dim,Ptype}}
+    seed::UInt
 end
 
 function Stress(; dim=2, Ptype=Float64, iterations=:auto, abstols=(√(eps(Float64))),
                 reltols=(√(eps(Float64))), abstolx=(√(eps(Float64))), weights=Array{Float64}(undef, 0, 0),
-                initialpos=Point{dim,Ptype}[])
+                initialpos=Point{dim,Ptype}[], seed=1)
     if !isempty(initialpos)
         initialpos = Point.(initialpos)
         Ptype = eltype(eltype(initialpos))
@@ -80,7 +83,7 @@ function Stress(; dim=2, Ptype=Float64, iterations=:auto, abstols=(√(eps(Float
         dim = length(eltype(initialpos))
     end
     IT, FT, WT = typeof(iterations), typeof(abstols), typeof(weights)
-    Stress{dim,Ptype,IT,FT,WT}(iterations, abstols, reltols, abstolx, weights, initialpos)
+    Stress{dim,Ptype,IT,FT,WT}(iterations, abstols, reltols, abstolx, weights, initialpos, seed)
 end
 
 function initialweights(D, T)::SparseMatrixCSC{T,Int64}
@@ -94,6 +97,7 @@ function Base.iterate(iter::LayoutIterator{<:Stress{Dim,Ptype,IT,FT}}) where {Di
     algo, δ = iter.algorithm, iter.adj_matrix
     N = size(δ, 1)
     M = length(algo.initialpos)
+    rng = MersenneTwister(algo.seed)
     startpos = Vector{Point{Dim,Ptype}}(undef, N)
     # take the first
     for i in 1:min(N, M)
@@ -101,7 +105,7 @@ function Base.iterate(iter::LayoutIterator{<:Stress{Dim,Ptype,IT,FT}}) where {Di
     end
     # fill the rest with random points
     for i in (M + 1):N
-        startpos[i] = randn(Point{Dim,Ptype})
+        startpos[i] = randn(rng, Point{Dim,Ptype})
     end
 
     # calculate iteration if :auto

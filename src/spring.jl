@@ -25,15 +25,19 @@ the nodes.
 
   Provide list of initial positions. If length does not match Network size the initial
   positions will be truncated or filled up with random values between [-1,1] in every coordinate.
+
+- `seed=1`: Seed for random initial positions.
 """
 struct Spring{Dim,Ptype} <: IterativeLayout{Dim,Ptype}
     C::Float64
     iterations::Int
     initialtemp::Float64
     initialpos::Vector{Point{Dim,Ptype}}
+    seed::UInt
 end
 
-function Spring(; dim=2, Ptype=Float64, C=2.0, iterations=100, initialtemp=2.0, initialpos=Point{dim,Ptype}[])
+function Spring(; dim=2, Ptype=Float64, C=2.0, iterations=100, initialtemp=2.0, initialpos=Point{dim,Ptype}[],
+                seed=1)
     if !isempty(initialpos)
         initialpos = Point.(initialpos)
         Ptype = eltype(eltype(initialpos))
@@ -41,13 +45,14 @@ function Spring(; dim=2, Ptype=Float64, C=2.0, iterations=100, initialtemp=2.0, 
         Ptype == Any && error("Please provide list of Point{N,T} with same T")
         dim = length(eltype(initialpos))
     end
-    return Spring{dim,Ptype}(C, iterations, initialtemp, initialpos)
+    return Spring{dim,Ptype}(C, iterations, initialtemp, initialpos, seed)
 end
 
-function Base.iterate(iter::LayoutIterator{<:Spring{Dim, Ptype}}) where {Dim, Ptype}
+function Base.iterate(iter::LayoutIterator{<:Spring{Dim,Ptype}}) where {Dim,Ptype}
     algo, adj_matrix = iter.algorithm, iter.adj_matrix
     N = size(adj_matrix, 1)
     M = length(algo.initialpos)
+    rng = MersenneTwister(algo.seed)
     startpos = Vector{Point{Dim,Ptype}}(undef, N)
     # take the first
     for i in 1:min(N, M)
@@ -55,7 +60,7 @@ function Base.iterate(iter::LayoutIterator{<:Spring{Dim, Ptype}}) where {Dim, Pt
     end
     # fill the rest with random points
     for i in (M + 1):N
-        startpos[i] = 2 .* rand(Point{Dim,Ptype}) .- 1
+        startpos[i] = 2 .* rand(rng, Point{Dim,Ptype}) .- 1
     end
     # iteratorstate: #iter nr, old pos
     return (startpos, (1, startpos))

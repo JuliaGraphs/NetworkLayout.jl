@@ -22,6 +22,8 @@ the nodes.
 
   Provide list of initial positions. If length does not match Network size the initial
   positions will be truncated or filled up with random values between [-1,1] in every coordinate.
+
+- `seed=1`: Seed for random initial positions.
 """
 struct SFDP{Dim,Ptype,T<:AbstractFloat} <: IterativeLayout{Dim,Ptype}
     tol::T
@@ -29,10 +31,12 @@ struct SFDP{Dim,Ptype,T<:AbstractFloat} <: IterativeLayout{Dim,Ptype}
     K::T
     iterations::Int
     initialpos::Vector{Point{Dim,Ptype}}
+    seed::UInt
 end
 
 # TODO: check SFDP default parameters
-function SFDP(; dim=2, Ptype=Float64, tol=1.0, C=0.2, K=1.0, iterations=100, initialpos=Point{dim,Ptype}[])
+function SFDP(; dim=2, Ptype=Float64, tol=1.0, C=0.2, K=1.0, iterations=100, initialpos=Point{dim,Ptype}[],
+              seed=1)
     if !isempty(initialpos)
         initialpos = Point.(initialpos)
         Ptype = eltype(eltype(initialpos))
@@ -40,13 +44,14 @@ function SFDP(; dim=2, Ptype=Float64, tol=1.0, C=0.2, K=1.0, iterations=100, ini
         Ptype == Any && error("Please provide list of Point{N,T} with same T")
         dim = length(eltype(initialpos))
     end
-    return SFDP{dim,Ptype,typeof(tol)}(tol, C, K, iterations, initialpos)
+    return SFDP{dim,Ptype,typeof(tol)}(tol, C, K, iterations, initialpos, seed)
 end
 
 function Base.iterate(iter::LayoutIterator{SFDP{Dim,Ptype,T}}) where {Dim,Ptype,T}
     algo, adj_matrix = iter.algorithm, iter.adj_matrix
     N = size(adj_matrix, 1)
     M = length(algo.initialpos)
+    rng = MersenneTwister(algo.seed)
     startpos = Vector{Point{Dim,Ptype}}(undef, N)
     # take the first
     for i in 1:min(N, M)
@@ -54,7 +59,7 @@ function Base.iterate(iter::LayoutIterator{SFDP{Dim,Ptype,T}}) where {Dim,Ptype,
     end
     # fill the rest with random points
     for i in (M + 1):N
-        startpos[i] = 2 .* rand(Point{Dim,Ptype}) .- 1
+        startpos[i] = 2 .* rand(rng, Point{Dim,Ptype}) .- 1
     end
     # iteratorstate: (#iter, energy, step, progress, old pos, stopflag)
     return startpos, (1, typemax(T), one(T), 0, startpos, false)
@@ -98,7 +103,7 @@ function Base.iterate(iter::LayoutIterator{<:SFDP}, state)
         stopflag = true
     end
 
-    return locs, (iter+1, energy, step, progress, locs, stopflag)
+    return locs, (iter + 1, energy, step, progress, locs, stopflag)
 end
 
 # Calculate Attractive force

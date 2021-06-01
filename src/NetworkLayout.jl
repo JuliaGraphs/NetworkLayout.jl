@@ -3,6 +3,7 @@ module NetworkLayout
 using GeometryBasics
 using Requires
 using LinearAlgebra: norm
+using Random
 
 export LayoutIterator, layout
 
