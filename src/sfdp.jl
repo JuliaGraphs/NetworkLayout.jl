@@ -23,12 +23,17 @@ struct Layout{M<:AbstractMatrix,P<:AbstractVector,T<:AbstractFloat}
     C::T
     K::T
     iterations::Int
+    fixed::BitVector
 end
 
 function Layout(adj_matrix, PT::Type{Point{N,T}}=Point{2,Float64};
-                startpositions=map(x -> 2 .* rand(PT) .- 1, 1:size(adj_matrix, 1)), tol=1.0, C=0.2, K=1.0,
-                iterations=100) where {N,T}
-    return Layout(adj_matrix, startpositions, T(tol), T(C), T(K), Int(iterations))
+                startpositions=map(x -> 2 .* rand(PT) .- 1, 1:size(adj_matrix, 1)),
+                tol=1.0,
+                C=0.2,
+                K=1.0,
+                iterations=100,
+                fixed = falses(length(startpositions))) where {N,T}
+    return Layout(adj_matrix, startpositions, T(tol), T(C), T(K), Int(iterations), fixed)
 end
 
 layout(adj_matrix, dim::Int; kw_args...) = layout(adj_matrix, Point{dim,Float64}; kw_args...)
@@ -78,7 +83,9 @@ function iterate(network::Layout, state)
                            ((locs[j] .- locs[i]) / norm(locs[j] .- locs[i])))
             end
         end
-        locs[i] = locs[i] .+ step .* (force ./ norm(force))
+        if !network.fixed[i]
+            locs[i] = locs[i] .+ step .* (force ./ norm(force))
+        end
         energy = energy + norm(force)^2
     end
     step, progress = update_step(step, energy, energy0, progress)
