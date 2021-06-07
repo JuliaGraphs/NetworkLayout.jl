@@ -34,10 +34,7 @@ function layout(algo::SquareGrid{Ptype}, adj_matrix::AbstractMatrix) where {Ptyp
     M = N + length(algo.skip)
 
     if algo.cols === :auto
-        cols = 0
-        while (cols^2 < M)
-            cols += 1
-        end
+        cols = (M == 0) ? 0 : (isqrt(M - 1) + 1)
     else
         cols = algo.cols
     end

@@ -58,7 +58,7 @@ function adj_mat_to_list(M::AbstractMatrix)
     N = size(M, 1)
     list = Vector{Vector{Int}}(undef, N)
     for i in 1:N
-        list[i] = findall(x -> !iszero(x), view(M, i, :))
+        list[i] = findall(!iszero, view(M, i, :))
     end
     return list
 end

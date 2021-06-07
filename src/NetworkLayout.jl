@@ -10,17 +10,17 @@ export LayoutIterator, layout
 """
     AbstractLayout{Dim,Ptype}
 
-Abstract supertype for all layouts. Each layout `Algorithm <: AbstractLayout` needs to
+Abstract supertype for all layouts. Each layout `Layout <: AbstractLayout` needs to
 implement
 
-    layout(algo::Algorithm, adj_matrix)::Vector{Point{Dim,Ptype}}
+    layout(::Layout, adj_matrix)::Vector{Point{Dim,Ptype}}
 
 which takes the adjacency matrix representation of a network and returns a list of
-node positions. Each `Algorithm` object holds all of the necessary parameters.
+node positions. Each `Layout` object holds all of the necessary parameters.
 
-By implementing `layout` the algorithm also inherits the function-like property
+By implementing `layout` the Layout also inherits the function-like property
 
-    Algorithm(; kwargs...)(adj_matrix) -> node_positions
+    Layout(; kwargs...)(adj_matrix) -> node_positions
 """
 abstract type AbstractLayout{Dim,Ptype} end
 
