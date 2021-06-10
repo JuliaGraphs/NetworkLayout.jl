@@ -69,6 +69,7 @@ struct LayoutIterator{T<:IterativeLayout,M<:AbstractMatrix}
 end
 
 function layout(alg::IterativeLayout, adj_matrix::AbstractMatrix)
+    assertsquare(adj_matrix)
     iter = LayoutIterator(alg, adj_matrix)
     next = Base.iterate(iter)
     pos = next[1]
@@ -82,6 +83,17 @@ end
 
 function __init__()
     @require LightGraphs="093fc24a-ae57-5d10-9952-331d41423f4d" layout(l::AbstractLayout, g::LightGraphs.AbstractGraph) = layout(l, LightGraphs.adjacency_matrix(g))
+end
+
+"""
+    assertsquare(M)
+
+Throws `ArgumentArror` if matrix is not square. Returns size.
+"""
+function assertsquare(M::AbstractMatrix)
+    (a, b) = size(M)
+    a != b && throw(ArgumentError("Adjecency Matrix needs to be square!"))
+    return a
 end
 
 include("sfdp.jl")

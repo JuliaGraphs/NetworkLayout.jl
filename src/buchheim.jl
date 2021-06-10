@@ -64,7 +64,7 @@ function adj_mat_to_list(M::AbstractMatrix)
 end
 
 function layout(para::Buchheim, adj_matrix::AbstractMatrix)
-    @assert size(adj_matrix, 1) == size(adj_matrix, 2) "adjacency matrix not square!"
+    assertsquare(adj_matrix)
     list = adj_mat_to_list(adj_matrix)
     layout(para, list)
 end

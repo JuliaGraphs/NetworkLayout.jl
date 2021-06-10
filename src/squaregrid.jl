@@ -30,7 +30,7 @@ function SquareGrid(; Ptype=Float64, cols=:auto, dx=Ptype(1), dy=Ptype(-1), skip
 end
 
 function layout(algo::SquareGrid{Ptype}, adj_matrix::AbstractMatrix) where {Ptype}
-    N = size(adj_matrix, 1)
+    N = assertsquare(adj_matrix)
     M = N + length(algo.skip)
 
     if algo.cols === :auto

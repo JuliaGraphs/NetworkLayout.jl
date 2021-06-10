@@ -281,4 +281,20 @@ jagmesh_adj = jagmesh()
         pos = Spring()(g)
         @test pos isa Vector{Point{2,Float64}}
     end
+
+    @testset "test assert square" begin
+        using NetworkLayout: assertsquare
+        M1 = rand(2,4)
+        @test_throws ArgumentError assertsquare(M1)
+        M2 = rand(4,4)
+        @test assertsquare(M2) == 4
+        @test_throws ArgumentError layout(Buchheim(), M1)
+        @test_throws ArgumentError layout(Circular(), M1)
+        @test_throws ArgumentError layout(SFDP(), M1)
+        @test_throws ArgumentError layout(Shell(), M1)
+        @test_throws ArgumentError layout(Spectral(), M1)
+        @test_throws ArgumentError layout(Spring(), M1)
+        @test_throws ArgumentError layout(SquareGrid(), M1)
+        @test_throws ArgumentError layout(Stress(), M1)
+    end
 end

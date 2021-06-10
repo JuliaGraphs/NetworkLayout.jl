@@ -26,11 +26,11 @@ end
 Shell(; Ptype=Float64, nlist=Vector{Int}[]) = Shell{Ptype}(nlist)
 
 function layout(algo::Shell{Ptype}, adj_matrix::AbstractMatrix) where {Ptype}
-    if size(adj_matrix, 1) == 1
+    N = assertsquare(adj_matrix)
+    if N == 1
         return Point{2,Float64}[Point(0.0, 0.0)]
     end
 
-    N = size(adj_matrix, 1)
     nlist = copy(algo.nlist)
 
     # if the list does not contain all the nodes push missing nodes to new shell

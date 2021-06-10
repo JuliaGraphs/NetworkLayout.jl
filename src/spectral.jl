@@ -56,11 +56,12 @@ function compute_laplacian(adj_matrix, node_weights)
 end
 
 function layout(algo::Spectral{Ptype,FT}, adj_matrix::AbstractMatrix) where {Ptype,FT}
+    N = assertsquare(adj_matrix)
     # try to use user provided nodeweights
-    nodeweights = if length(algo.nodeweights) == size(adj_matrix, 1)
+    nodeweights = if length(algo.nodeweights) == N
         algo.nodeweights
     else
-        ones(FT, size(adj_matrix, 1))
+        ones(FT, N)
     end
 
     adj_matrix = make_symmetric(adj_matrix)

@@ -17,11 +17,12 @@ struct Circular{Ptype} <: AbstractLayout{2,Ptype} end
 Circular(; Ptype=Float64) = Circular{Ptype}()
 
 function layout(::Circular{Ptype}, adj_matrix::AbstractMatrix) where {Ptype}
-    if size(adj_matrix, 1) == 1
+    N = assertsquare(adj_matrix)
+    if N == 1
         return Point{2,Ptype}[Point(0.0, 0.0)]
     else
         # Discard the extra angle since it matches 0 radians.
-        θ = range(0; stop=2pi, length=size(adj_matrix, 1) + 1)[1:(end - 1)]
+        θ = range(0; stop=2pi, length=N + 1)[1:(end - 1)]
         return Point{2,Ptype}[(cos(o), sin(o)) for o in θ]
     end
 end
