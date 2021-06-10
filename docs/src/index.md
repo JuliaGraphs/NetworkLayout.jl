@@ -145,9 +145,9 @@ hidedecorations!(ax); hidespines!(ax); ax.aspect = DataAspect(); f #hide
 SquareGrid
 ```
 ```@example layouts
-g = path_graph(21)
-layout = SquareGrid(skip=[(1,2), (3,4)])
-f, ax, p = graphplot(g, layout=layout, nlabels=repr.(1:21), nlabels_textsize=15)
+g = Grid((8,4))
+layout = SquareGrid(cols=8)
+f, ax, p = graphplot(g, layout=layout, nlabels=repr.(1:nv(g)), nlabels_textsize=15)
 hidedecorations!(ax); hidespines!(ax); ax.aspect = DataAspect(); f #hide
 ```
 
