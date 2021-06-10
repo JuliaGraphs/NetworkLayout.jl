@@ -48,8 +48,8 @@ jobs:
       - run: |
           julia --project=docs -e '
             using Pkg
-            # FIXME: temp solution to resolve deps
-            Pkg.add(url="https://github.com/JuliaPlots/GraphMakie.jl", rev="nl0.4")
+            # XXX: temp solution to resolve deps
+            Pkg.add(url="https://github.com/JuliaPlots/GraphMakie.jl", rev="f9b8c18")
             Pkg.develop(PackageSpec(path=pwd()))
             Pkg.instantiate()'
       - run: |

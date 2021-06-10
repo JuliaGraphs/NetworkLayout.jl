@@ -145,28 +145,21 @@ hidedecorations!(ax); hidespines!(ax); ax.aspect = DataAspect(); f #hide
 SquareGrid
 ```
 ```@example layouts
-g = Grid((8,4))
-layout = SquareGrid(cols=8)
-f, ax, p = graphplot(g, layout=layout, nlabels=repr.(1:nv(g)), nlabels_textsize=15)
-hidedecorations!(ax); hidespines!(ax); ax.aspect = DataAspect(); f #hide
+g = Grid((12,4))
+layout = SquareGrid(cols=12)
+f, ax, p = graphplot(g, layout=layout, nlabels=repr.(1:nv(g)), nlabels_textsize=10, nlabels_distance=5)
+ylims!(-4.5,.5); hidedecorations!(ax); hidespines!(ax); ax.aspect = DataAspect(); f #hide
 ```
 
 ## Spectral
 ```@docs
 Spectral
 ```
-Spectral needs 3d which isn't ready yet on the GraphMakie side.
-```
-using JSServe
-Page(exportable=true, offline=true)
-using WGLMakie #hide
-WGLMakie.activate!() # hide
-set_theme!(resolution=(800, 400)) # hide
-scatter([1,2,3], [1,2,3])
-```
-```
-g = smallgraph(:petersen)
-layout = Shell(nlist=[6:10,])
-f, ax, p = graphplot(g, layout=layout)
-hidedecorations!(ax); hidespines!(ax); ax.aspect = DataAspect(); f #hide
+```@example layouts
+set_theme!(resolution=(800, 800)) #hide
+using Random; Random.seed!(5) # hide
+g = watts_strogatz(30, 5, 1)
+layout = Spectral()
+f, ax, p = graphplot(g, layout=layout, node_size=5, edge_width=1)
+f #hide
 ```
