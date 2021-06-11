@@ -150,15 +150,21 @@ f, ax, p = graphplot(g, layout=layout, nlabels=repr.(1:nv(g)), nlabels_textsize=
 ylims!(-4.5,.5); hidedecorations!(ax); hidespines!(ax); ax.aspect = DataAspect(); f #hide
 ```
 
-## Spectral
+## Spectral Layout
 ```@docs
 Spectral
 ```
 ```@example layouts
+g = watts_strogatz(1000, 5, 0.03; seed=5)
+layout = Spectral(dim=2)
+f, ax, p = graphplot(g, layout=layout, node_size=0.0, edge_width=1.0)
+hidedecorations!(ax); hidespines!(ax); f #hide
+f #hide
+```
+```@example layouts
 set_theme!(resolution=(800, 800)) #hide
 using Random; Random.seed!(5) # hide
-g = watts_strogatz(30, 5, 1)
 layout = Spectral()
-f, ax, p = graphplot(g, layout=layout, node_size=5, edge_width=1)
+f, ax, p = graphplot(g, layout=layout, node_size=0.0, edge_width=1.0)
 f #hide
 ```

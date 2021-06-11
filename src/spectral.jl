@@ -7,27 +7,23 @@ export Spectral, spectral
     spectral(adj_matrix; kwargs...)
 
 This algorithm uses the technique of Spectral Graph Drawing, which is an
-under-appreciated method of graph layouts; easier, simpler, and faster
-than the more common spring-based methods. For reference see
-
-- <http://www.research.att.com/export/sites/att_labs/groups/infovis/res/legacy_papers/DBLP-journals-camwa-Koren05.pdf>
-- <http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.3.2055&rep=rep1&type=pdf>
+under-appreciated method of graph layouts; easier, simpler, and faster than the
+more common spring-based methods. For reference see [Yehuda Koren,
+2002](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.3.2055&rep=rep1&type=pdf).
 
 Takes adjacency matrix representation of a network and returns coordinates of
 the nodes.
 
 ## Keyword Arguments
-- `Ptype=Float64`: Determines the output type `Point{3,Ptype}`.
-- `nodeweights=Float64[]`
-
-  Vector of weights. If network size does not match the length of `nodesize` use
-  `ones` instead.
+- `dim=3`, `Ptype=Float64`: Determines dimension and output type `Point{dim,Ptype}`.
+- `nodeweights=Float64[]`: Vector of weights. If network size does not match the
+  length of `nodesize` use `ones` instead.
 """
-@addcall struct Spectral{Ptype,FT<:AbstractFloat} <: AbstractLayout{3,Ptype}
+@addcall struct Spectral{Dim,Ptype,FT<:AbstractFloat} <: AbstractLayout{Dim,Ptype}
     nodeweights::Vector{FT}
 end
 
-Spectral(; Ptype=Float64, nodeweights=Float64[]) = Spectral{Ptype,eltype(nodeweights)}(nodeweights)
+Spectral(; dim=3, Ptype=Float64, nodeweights=Float64[]) = Spectral{dim,Ptype,eltype(nodeweights)}(nodeweights)
 
 function make_symmetric(adj_matrix::AbstractMatrix)
     adj_matrix = copy(adj_matrix)
@@ -55,7 +51,7 @@ function compute_laplacian(adj_matrix, node_weights)
     return L, D
 end
 
-function layout(algo::Spectral{Ptype,FT}, adj_matrix::AbstractMatrix) where {Ptype,FT}
+function layout(algo::Spectral{Dim,Ptype,FT}, adj_matrix::AbstractMatrix) where {Dim,Ptype,FT}
     N = assertsquare(adj_matrix)
     # try to use user provided nodeweights
     nodeweights = if length(algo.nodeweights) == N
@@ -70,5 +66,5 @@ function layout(algo::Spectral{Ptype,FT}, adj_matrix::AbstractMatrix) where {Pty
     v = eigen(L, D).vectors
     # x, y, and z are the 2nd through 4th eigenvectors of the solution to the
     # generalized eigenvalue problem Lv = λDv
-    return [Point{3,Ptype}(v[2, i], v[3, i], v[4, i]) for i in 1:size(v, 2)]
+    return map(x -> Point{Dim,Ptype}(x[2:(Dim + 1)]...), eachrow(v))
 end
