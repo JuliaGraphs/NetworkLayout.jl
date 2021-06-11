@@ -1,11 +1,11 @@
 using LinearAlgebra: checksquare, norm, pinv, mul!
 using SparseArrays: SparseMatrixCSC
 
-export Stress
+export Stress, stress
 
 """
     Stress(; kwargs...)(adj_matrix)
-    layout(algo::Stress, adj_matrix)
+    stress(adj_matrix; kwargs...)
 
 Compute graph layout using stress majorization. Takes adjacency matrix
 representation of a network and returns coordinates of the nodes.
@@ -61,8 +61,8 @@ The main equation to solve is (8) of:
         pages={239--250},
     }
 """
-struct Stress{Dim,Ptype,IT<:Union{Symbol,Int},FT<:AbstractFloat,M<:AbstractMatrix} <:
-       IterativeLayout{Dim,Ptype}
+@addcall struct Stress{Dim,Ptype,IT<:Union{Symbol,Int},FT<:AbstractFloat,M<:AbstractMatrix} <:
+                IterativeLayout{Dim,Ptype}
     iterations::IT
     abstols::FT
     reltols::FT

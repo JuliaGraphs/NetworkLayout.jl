@@ -27,7 +27,16 @@ callable and transforms the adjacency matrix and returns a list of `Point{N,T}` 
 alg = LayoutAlgorithm(; p1="foo", p2=:bar)
 positions = alg(adj_matrix)
 ```
+Each of the layouts comes with a lowercase function version:
+```
+positions = layoutalgorithm(adj_matrix; p1="foo", b2=:bar)
+```
+
 Instead of using the adjacency matrix you can use `AbstractGraph` types from [`LightGraphs.jl`](https://github.com/JuliaGraphs/LightGraphs.jl) directly.
+```
+g = complete_graph(10)
+positions = layoutalgorithm(g)
+```
 
 ## Scalable Force Directed Placement
 ```@docs

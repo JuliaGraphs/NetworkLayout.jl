@@ -1,8 +1,8 @@
-export Shell
+export Shell, shell
 
 """
     Shell(; kwargs...)(adj_matrix)
-    layout(algo::Shell, adj_matrix)
+    shell(adj_matrix; kwargs...)
 
 Position nodes in concentric circles. Without further arguments all nodes will
 be placed on a circle with radius 1.0. Specify placement of nodes using the
@@ -21,7 +21,7 @@ the nodes.
 
 This function started as a copy from [IainNZ](https://github.com/IainNZ)'s [GraphLayout.jl](https://github.com/IainNZ/GraphLayout.jl)
 """
-struct Shell{Ptype} <: AbstractLayout{2,Ptype}
+@addcall struct Shell{Ptype} <: AbstractLayout{2,Ptype}
     nlist::Vector{Vector{Int}}
 end
 

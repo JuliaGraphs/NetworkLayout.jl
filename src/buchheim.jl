@@ -1,10 +1,10 @@
-export Buchheim
+export Buchheim, buchheim
 
 """
     Buchheim(; kwargs...)(adj_matrix)
     Buchheim(; kwargs...)(adj_list)
-    layout(algo::Buchheim, adj_matrix)
-    layout(algo::Buchheim, adj_list)
+    buchheim(adj_matrix; kwargs...)
+    buchheim(adj_list; kwargs...)
 
 Using the algorithm proposed in the paper,
 ["Improving Walker's Algorithm to Run in Linear Time"](http://dirk.jivas.de/papers/buchheim02improving.pdf)
@@ -20,7 +20,7 @@ and returns coordinates of the nodes.
   Determines the size of each of the node. If network size does not match the
   length of `nodesize` fill up with `ones` or truncate given parameter.
 """
-struct Buchheim{Ptype,T} <: AbstractLayout{2,Ptype}
+@addcall struct Buchheim{Ptype,T} <: AbstractLayout{2,Ptype}
     nodesize::Vector{T}
 end
 

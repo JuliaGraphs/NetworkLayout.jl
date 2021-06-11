@@ -5,7 +5,7 @@ using Requires
 using LinearAlgebra: norm
 using Random
 
-export LayoutIterator, layout
+export LayoutIterator
 
 """
     AbstractLayout{Dim,Ptype}
@@ -86,7 +86,11 @@ function layout(alg::IterativeLayout, adj_matrix::AbstractMatrix)
 end
 
 function __init__()
-    @require LightGraphs="093fc24a-ae57-5d10-9952-331d41423f4d" layout(l::AbstractLayout, g::LightGraphs.AbstractGraph) = layout(l, LightGraphs.adjacency_matrix(g))
+    @require LightGraphs = "093fc24a-ae57-5d10-9952-331d41423f4d" begin
+        function layout(l::AbstractLayout, g::LightGraphs.AbstractGraph)
+            layout(l, LightGraphs.adjacency_matrix(g))
+        end
+    end
 end
 
 """
@@ -98,6 +102,43 @@ function assertsquare(M::AbstractMatrix)
     (a, b) = size(M)
     a != b && throw(ArgumentError("Adjecency Matrix needs to be square!"))
     return a
+end
+
+"""
+    @addcall
+
+Annotate subtypes of `AbstractLayout` to create a lowercase function call for them.
+
+    @addcall struct MyLayout{Dim, Ptype} <: AbstractLayout{Dim, Ptype}
+        para
+    end
+
+will add the function
+
+    mylayout(g; kwargs...) = layout(MyLayout(; kwargs...), g)
+"""
+macro addcall(expr::Expr)
+    # assert subtype of abstract layout
+    @assert expr.head === :struct "Macro not used on struct!"
+    typedef = expr.args[2]
+    @assert typedef isa Expr &&
+            typedef.head === :<: &&
+            typedef.args[2] isa Expr && # supertype
+            typedef.args[2].args[1] ∈ [:AbstractLayout, :IterativeLayout] "Macro musst be used on subtype of AbstractLayout"
+
+    if typedef.args[1] isa Symbol # no type parameters
+        name = typedef.args[1]
+    elseif typedef.args[1] isa Expr && typedef.args[1].head === :curly && typedef.args[1].args[1] isa Symbol
+        name = typedef.args[1].args[1]
+    else
+        throw(ArgumentError("Can't find the layout name!"))
+    end
+
+    fname = Symbol(lowercase(String(name)))
+    return quote
+        Base.@__doc__ $(esc(expr))
+        Base.@__doc__ $(esc(fname))(g; kwargs...) = layout($name(; kwargs...), g)
+    end
 end
 
 include("sfdp.jl")

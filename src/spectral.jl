@@ -1,10 +1,10 @@
 using LinearAlgebra: diag, eigen, Diagonal
 
-export Spectral
+export Spectral, spectral
 
 """
     Spectral(; kwargs...)(adj_matrix)
-    layout(algo::Spectral, adj_matrix)
+    spectral(adj_matrix; kwargs...)
 
 This algorithm uses the technique of Spectral Graph Drawing, which is an
 under-appreciated method of graph layouts; easier, simpler, and faster
@@ -23,7 +23,7 @@ the nodes.
   Vector of weights. If network size does not match the length of `nodesize` use
   `ones` instead.
 """
-struct Spectral{Ptype,FT<:AbstractFloat} <: AbstractLayout{3,Ptype}
+@addcall struct Spectral{Ptype,FT<:AbstractFloat} <: AbstractLayout{3,Ptype}
     nodeweights::Vector{FT}
 end
 

@@ -1,8 +1,8 @@
-export SFDP
+export SFDP, sfdp
 
 """
     SFDP(; kwargs...)(adj_matrix)
-    layout(algo::SFDP, adj_matrix)
+    sfdp(adj_matrix; kwargs...)
 
 Using the Spring-Electric [model suggested by Yifan Hu](http://yifanhu.net/PUB/graph_draw_small.pdf).
 Forces are calculated as:
@@ -25,7 +25,7 @@ the nodes.
 
 - `seed=1`: Seed for random initial positions.
 """
-struct SFDP{Dim,Ptype,T<:AbstractFloat} <: IterativeLayout{Dim,Ptype}
+@addcall struct SFDP{Dim,Ptype,T<:AbstractFloat} <: IterativeLayout{Dim,Ptype}
     tol::T
     C::T
     K::T

@@ -1,8 +1,8 @@
-export SquareGrid
+export SquareGrid, squaregrid
 
 """
     SquareGrid(; kwargs...)(adj_matrix)
-    layout(algo::SquareGrid, adj_matrix)
+    squaregrid(adj_matrix; kwargs...)
 
 Position nodes on a 2 dimensional rectagular grid. The nodes are palced in order
 from upper left to lower right. To skip positions see `skip` argument.
@@ -18,7 +18,7 @@ the nodes.
   `skip=[(i,j)]` means to keep the position in the `i`-th row and `j`-th column
   empty.
 """
-struct SquareGrid{Ptype,CT} <: AbstractLayout{2,Ptype}
+@addcall struct SquareGrid{Ptype,CT} <: AbstractLayout{2,Ptype}
     cols::CT
     dx::Ptype
     dy::Ptype

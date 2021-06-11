@@ -1,8 +1,8 @@
-export Spring
+export Spring, spring
 
 """
     Spring(; kwargs...)(adj_matrix)
-    layout(algo::Spring, adj_matrix)
+    spring(adj_matrix; kwargs...)
 
 Use the spring/repulsion model of Fruchterman and Reingold (1991) with
 
@@ -28,7 +28,7 @@ the nodes.
 
 - `seed=1`: Seed for random initial positions.
 """
-struct Spring{Dim,Ptype} <: IterativeLayout{Dim,Ptype}
+@addcall struct Spring{Dim,Ptype} <: IterativeLayout{Dim,Ptype}
     C::Float64
     iterations::Int
     initialtemp::Float64

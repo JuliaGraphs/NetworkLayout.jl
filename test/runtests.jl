@@ -58,8 +58,10 @@ jagmesh_adj = jagmesh()
             adj_matrix = adjacency_matrix(g)
             positions = @time SFDP(; dim=2, Ptype=Float32, tol=0.1, K=1)(adj_matrix)
             @test typeof(positions) == Vector{Point2f0}
+            @test positions == sfdp(adj_matrix; dim=2, Ptype=Float32, tol=0.1, K=1)
             positions = @time SFDP(; dim=3, Ptype=Float32, tol=0.1, K=1)(adj_matrix)
             @test typeof(positions) == Vector{Point3f0}
+            @test positions == sfdp(adj_matrix; dim=3, Ptype=Float32, tol=0.1, K=1)
         end
     end
 
@@ -105,8 +107,10 @@ jagmesh_adj = jagmesh()
             adj_matrix = adjacency_matrix(g)
             positions = @time Stress(; iterations=10, Ptype=Float32)(adj_matrix)
             @test typeof(positions) == Vector{Point2f0}
+            @test positions == stress(adj_matrix; iterations=10, Ptype=Float32)
             positions = @time Stress(; iterations=10, dim=3, Ptype=Float32)(adj_matrix)
             @test typeof(positions) == Vector{Point3f0}
+            @test positions == stress(adj_matrix; iterations=10, dim=3, Ptype=Float32)
         end
     end
 
@@ -143,8 +147,11 @@ jagmesh_adj = jagmesh()
             adj_matrix = adjacency_matrix(g)
             positions = @time Spring(; C=2.0, iterations=100, initialtemp=2.0, Ptype=Float32)(adj_matrix)
             @test typeof(positions) == Vector{Point2f0}
+            @test positions == spring(adj_matrix; C=2.0, iterations=100, initialtemp=2.0, Ptype=Float32)
             positions = @time Spring(; C=2.0, iterations=100, initialtemp=2.0, Ptype=Float32, dim=3)(adj_matrix)
             @test typeof(positions) == Vector{Point3f0}
+            @test positions ==
+                  spring(adj_matrix; C=2.0, iterations=100, initialtemp=2.0, Ptype=Float32, dim=3)
         end
     end
 
@@ -155,8 +162,10 @@ jagmesh_adj = jagmesh()
             adj_matrix = adjacency_matrix(g)
             positions = @time Spectral()(adj_matrix)
             @test typeof(positions) == Vector{Point{3,Float64}}
+            @test positions == spectral(adj_matrix)
             positions = @time Spectral(; Ptype=Float32)(adj_matrix)
             @test typeof(positions) == Vector{Point{3,Float32}}
+            @test positions == spectral(adj_matrix; Ptype=Float32)
         end
     end
 
@@ -168,6 +177,7 @@ jagmesh_adj = jagmesh()
             adj_matrix = adjacency_matrix(g)
             positions = @time Shell()(adj_matrix)
             @test typeof(positions) == Vector{Point{2,Float64}}
+            @test positions == shell(adj_matrix)
         end
         @testset "Testing Base Case" begin
             g = Graph(1)
@@ -206,6 +216,7 @@ jagmesh_adj = jagmesh()
             nodesize = [1, 2, 1.5, 3, 0.5, 1, 1]
             locs = @time Buchheim(; nodesize)(adj_list)
             @test typeof(locs) == Vector{Point{2,Float64}}
+            @test locs == buchheim(adj_list; nodesize)
             locs = @time Buchheim(; Ptype=Float32)(adj_list)
             @test typeof(locs) == Vector{Point{2,Float32}}
         end
@@ -234,14 +245,17 @@ jagmesh_adj = jagmesh()
             M = adjacency_matrix(SimpleGraph(4))
             positions = SquareGrid(; Ptype=Int)(M)
             @test positions == Point2.([(0, 0), (1, 0), (0, -1), (1, -1)])
+            @test positions == squaregrid(M; Ptype=Int)
 
             M = adjacency_matrix(SimpleGraph(3))
             positions = SquareGrid(; Ptype=Int)(M)
             @test positions == Point2.([(0, 0), (1, 0), (0, -1)])
+            @test positions == squaregrid(M; Ptype=Int)
 
             M = adjacency_matrix(SimpleGraph(5))
             positions = SquareGrid(; Ptype=Int, cols=2)(M)
             @test positions == Point2.([(0, 0), (1, 0), (0, -1), (1, -1), (0, -2)])
+            @test positions == squaregrid(M; Ptype=Int, cols=2)
         end
 
         @testset "Testing dx,dy" begin
@@ -266,16 +280,16 @@ jagmesh_adj = jagmesh()
 
     @testset "test assert square" begin
         using NetworkLayout: assertsquare
-        M1 = rand(2,4)
+        M1 = rand(2, 4)
         @test_throws ArgumentError assertsquare(M1)
-        M2 = rand(4,4)
+        M2 = rand(4, 4)
         @test assertsquare(M2) == 4
-        @test_throws ArgumentError layout(Buchheim(), M1)
-        @test_throws ArgumentError layout(SFDP(), M1)
-        @test_throws ArgumentError layout(Shell(), M1)
-        @test_throws ArgumentError layout(Spectral(), M1)
-        @test_throws ArgumentError layout(Spring(), M1)
-        @test_throws ArgumentError layout(SquareGrid(), M1)
-        @test_throws ArgumentError layout(Stress(), M1)
+        @test_throws ArgumentError buchheim(M1)
+        @test_throws ArgumentError sfdp(M1)
+        @test_throws ArgumentError shell(M1)
+        @test_throws ArgumentError spectral(M1)
+        @test_throws ArgumentError spring(M1)
+        @test_throws ArgumentError squaregrid(M1)
+        @test_throws ArgumentError stress(M1)
     end
 end
