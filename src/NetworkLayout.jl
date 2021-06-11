@@ -18,6 +18,10 @@ implement
 which takes the adjacency matrix representation of a network and returns a list of
 node positions. Each `Layout` object holds all of the necessary parameters.
 
+The type parameters specify the returntype `Vector{Point{Dim,Ptype}}`:
+- `Dim`: the dimensionality of the layout (i.e. 2 or 3)
+- `Ptype`: the type of the returned points (i.e. `Float32` or `Float64`)
+
 By implementing `layout` the Layout also inherits the function-like property
 
     Layout(; kwargs...)(adj_matrix) -> node_positions

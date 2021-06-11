@@ -19,14 +19,15 @@ nothing #hide
 
 # Basic Usage & Algorithms
 All of the algorithms follow the [Layout Interface](@ref). Each layout algorithm
-is represented by a type `Algorithm <: AbstractLayout`. The parameters of each
-algorithm can be set with keyword arguments. The `Algorithm` object itself is
+is represented by a type `LayoutAlgorithm <: AbstractLayout`. The parameters of each
+layout can be set with keyword arguments. The `LayoutAlgorithm` object itself is
 callable and transforms the adjacency matrix and returns a list of `Point{N,T}` from [`GeometryBasics.jl`](https://github.com/JuliaGeometry/GeometryBasics.jl).
 
 ```
-alg = Algorithm(; p1="foo", p2=:bar)
+alg = LayoutAlgorithm(; p1="foo", p2=:bar)
 positions = alg(adj_matrix)
 ```
+Instead of using the adjacency matrix you can use `AbstractGraph` types from [`LightGraphs.jl`](https://github.com/JuliaGraphs/LightGraphs.jl) directly.
 
 ## Scalable Force Directed Placement
 ```@docs
