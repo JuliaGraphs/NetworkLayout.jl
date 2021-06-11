@@ -90,6 +90,9 @@ function __init__()
         function layout(l::AbstractLayout, g::LightGraphs.AbstractGraph)
             layout(l, LightGraphs.adjacency_matrix(g))
         end
+        function LayoutIterator(l::IterativeLayout, g::LightGraphs.AbstractGraph)
+            LayoutIterator(l, LightGraphs.adjacency_matrix(g))
+        end
     end
 end
 

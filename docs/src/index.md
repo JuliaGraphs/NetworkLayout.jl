@@ -52,7 +52,7 @@ hidedecorations!(ax); hidespines!(ax); ax.aspect = DataAspect(); f
 
 ### Iterator Example
 ```@example layouts
-iterator = LayoutIterator(layout, adjacency_matrix(g))
+iterator = LayoutIterator(layout, g)
 record(f, "sfdp_animation.mp4", iterator; framerate = 10) do pos
     p[:node_positions][] = pos
     autolimits!(ax)
@@ -96,7 +96,7 @@ hidedecorations!(ax); hidespines!(ax); ax.aspect = DataAspect(); f #hide
 ```
 ### Iterator Example
 ```@example layouts
-iterator = LayoutIterator(layout, adjacency_matrix(g))
+iterator = LayoutIterator(layout, g)
 record(f, "spring_animation.mp4", iterator; framerate = 10) do pos
     p[:node_positions][] = pos
     autolimits!(ax)
@@ -119,7 +119,7 @@ hidedecorations!(ax); hidespines!(ax); ax.aspect = DataAspect(); f #hide
 
 ### Iterator Example
 ```@example layouts
-iterator = LayoutIterator(layout, adjacency_matrix(g))
+iterator = LayoutIterator(layout, g)
 record(f, "stress_animation.mp4", iterator; framerate = 10) do pos
     p[:node_positions][] = pos
     autolimits!(ax)
