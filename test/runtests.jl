@@ -160,24 +160,6 @@ jagmesh_adj = jagmesh()
         end
     end
 
-    @testset "Testing Circular Layout Algorithm" begin
-        println("Circular wheel_graph")
-        @testset "Testing wheel_graph" begin
-            g = wheel_graph(10)
-            adj_matrix = adjacency_matrix(g)
-            positions = @time Circular()(adj_matrix)
-            @test typeof(positions) == Vector{Point{2,Float64}}
-            positions = @time Circular(; Ptype=Float32)(adj_matrix)
-            @test typeof(positions) == Vector{Point{2,Float32}}
-        end
-        @testset "Testing Base Case" begin
-            g = Graph(1)
-            adj_matrix = adjacency_matrix(g)
-            positions = @time Circular()(adj_matrix)
-            @test typeof(positions) == Vector{Point{2,Float64}}
-        end
-    end
-
     @testset "Testing Shell Layout Algorithm" begin
         println("Shell wheel_graph")
 
@@ -289,7 +271,6 @@ jagmesh_adj = jagmesh()
         M2 = rand(4,4)
         @test assertsquare(M2) == 4
         @test_throws ArgumentError layout(Buchheim(), M1)
-        @test_throws ArgumentError layout(Circular(), M1)
         @test_throws ArgumentError layout(SFDP(), M1)
         @test_throws ArgumentError layout(Shell(), M1)
         @test_throws ArgumentError layout(Spectral(), M1)

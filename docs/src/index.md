@@ -118,18 +118,7 @@ nothing #hide
 ```
 ![stress animation](stress_animation.mp4)
 
-##  Circular Layout
-```@docs
-Circular
-```
-```@example layouts
-g = smallgraph(:karate)
-layout = Circular()
-f, ax, p = graphplot(g, layout=layout)
-hidedecorations!(ax); hidespines!(ax); ax.aspect = DataAspect(); f #hide
-```
-
-##  Shell Layout
+##  Shell/Circular Layout
 ```@docs
 Shell
 ```
