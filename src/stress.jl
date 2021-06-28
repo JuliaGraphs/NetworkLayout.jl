@@ -1,38 +1,51 @@
+using LinearAlgebra: checksquare, norm, pinv, mul!
+using SparseArrays: SparseMatrixCSC
+
+export Stress, stress
+
 """
-Compute graph layout using stress majorization
+    Stress(; kwargs...)(adj_matrix)
+    stress(adj_matrix; kwargs...)
 
-Inputs:
+Compute graph layout using stress majorization. Takes adjacency matrix
+representation of a network and returns coordinates of the nodes.
 
-    δ: Matrix of pairwise distances
-    p: Dimension of embedding (default: 2)
-    weights: Matrix of weights. If not specified, defaults to
-           weights[i,j] = δ[i,j]^-2 if δ[i,j] is nonzero, or 0 otherwise
-    X0: Initial guess for the layout. Coordinates are given in rows.
-        If not specified, default to random matrix of Gaussians
+## Inputs:
+- `adj_matrix`: Matrix of pairwise distances.
 
-Additional optional keyword arguments control the convergence of the algorithm
-and the additional output as requested:
+## Keyword Arguments
+- `dim=2`, `Ptype=Float64`: Determines dimension and output type `Point{dim,Ptype}`.
+- `iterations=:auto`: maximum number of iterations (`:auto` means `400*N^2` where `N` are the number of vertices)
+- `abstols=(√(eps(Float64)))`
 
-    iterations:   Maximum number of iterations. Default: 400size(X0, 1)^2
-    abstols:      Absolute tolerance for convergence of stress.
-                  The iterations terminate if the difference between two
-                  successive stresses is less than abstol.
-                  Default: √(eps(eltype(X0))
-    reltols:      Relative tolerance for convergence of stress.
-                  The iterations terminate if the difference between two
-                  successive stresses relative to the current stress is less than
-                  reltol. Default: √(eps(eltype(X0))
-    abstolx:      Absolute tolerance for convergence of layout.
-                  The iterations terminate if the Frobenius norm of two successive
-                  layouts is less than abstolx. Default: √(eps(eltype(X0))
+   Absolute tolerance for convergence of stress. The iterations terminate if the
+   difference between two successive stresses is less than abstol.
 
-Output:
+- `reltols=(√(eps(Float64)))`
 
-    The final layout positions.
+  Relative tolerance for convergence of stress. The iterations terminate if the
+  difference between two successive stresses relative to the current stress is
+  less than reltol.
 
-Reference:
+- `abstolx=(√(eps(Float64)))`
 
-    The main equation to solve is (8) of:
+  Absolute tolerance for convergence of layout. The iterations terminate if the
+  Frobenius norm of two successive layouts is less than abstolx.
+
+- `weights=Array{Float64}(undef, 0, 0)`
+
+  Matrix of weights. If empty (i.e. not specified), defaults to `weights[i,j] = δ[i,j]^-2` if
+  `δ[i,j]` is nonzero, or `0` otherwise.
+
+- `initialpos=Point{dim,Ptype}[]`
+
+  Provide list of initial positions. If length does not match Network size the initial
+  positions will be truncated or filled up with random normal distributed values in every coordinate.
+
+- `seed=1`: Seed for random initial positions.
+
+## Reference:
+The main equation to solve is (8) of:
 
     @incollection{
         author = {Emden R Gansner and Yehuda Koren and Stephen North},
@@ -48,86 +61,93 @@ Reference:
         pages={239--250},
     }
 """
-module Stress
-
-using GeometryBasics
-using LinearAlgebra: checksquare, norm, pinv
-using SparseArrays: SparseMatrixCSC
-
-struct Layout{M1<:AbstractMatrix,M2<:AbstractMatrix,VP<:AbstractVector,FT<:AbstractFloat}
-    δ::M1
-    weights::M2
-    positions::VP
-    pinvLw::Matrix{FT}
-    iterations::Int
+@addcall struct Stress{Dim,Ptype,IT<:Union{Symbol,Int},FT<:AbstractFloat,M<:AbstractMatrix} <:
+                IterativeLayout{Dim,Ptype}
+    iterations::IT
     abstols::FT
     reltols::FT
     abstolx::FT
+    weights::M
+    initialpos::Vector{Point{Dim,Ptype}}
+    seed::UInt
 end
 
-function initialweights(D, T=Float64)::SparseMatrixCSC{T,Int64}
+function Stress(; dim=2, Ptype=Float64, iterations=:auto, abstols=(√(eps(Float64))),
+                reltols=(√(eps(Float64))), abstolx=(√(eps(Float64))), weights=Array{Float64}(undef, 0, 0),
+                initialpos=Point{dim,Ptype}[], seed=1)
+    if !isempty(initialpos)
+        initialpos = Point.(initialpos)
+        Ptype = eltype(eltype(initialpos))
+        # TODO fix initial pos if list has points of multiple types
+        Ptype == Any && error("Please provide list of Point{N,T} with same T")
+        dim = length(eltype(initialpos))
+    end
+    IT, FT, WT = typeof(iterations), typeof(abstols), typeof(weights)
+    Stress{dim,Ptype,IT,FT,WT}(iterations, abstols, reltols, abstolx, weights, initialpos, seed)
+end
+
+function initialweights(D, T)::SparseMatrixCSC{T,Int64}
     map(D) do d
         x = T(d^(-2.0))
         return isfinite(x) ? x : zero(T)
     end
 end
 
-function Layout(δ, PT::Type{Point{N,T}}=Point{2,Float64}; startpositions=rand(PT, size(δ, 1)),
-                weights=initialweights(δ, T), iterations=400 * size(δ, 1)^2, abstols=√(eps(T)),
-                reltols=√(eps(T)), abstolx=√(eps(T))) where {N,T}
-    @assert size(startpositions, 1) == size(δ, 1) == size(δ, 2) == size(weights, 1) == size(weights, 2)
+function Base.iterate(iter::LayoutIterator{<:Stress{Dim,Ptype,IT,FT}}) where {Dim,Ptype,IT,FT}
+    algo, δ = iter.algorithm, iter.adj_matrix
+    N = size(δ, 1)
+    M = length(algo.initialpos)
+    rng = MersenneTwister(algo.seed)
+    startpos = Vector{Point{Dim,Ptype}}(undef, N)
+    # take the first
+    for i in 1:min(N, M)
+        startpos[i] = algo.initialpos[i]
+    end
+    # fill the rest with random points
+    for i in (M + 1):N
+        startpos[i] = randn(rng, Point{Dim,Ptype})
+    end
+
+    # calculate iteration if :auto
+    maxiter = algo.iterations === :auto ? 400 * size(δ, 1)^2 : algo.iterations
+    @assert maxiter > 0 "Iterations need to be > 0"
+
+    # if user provided weights not empty try those
+    weights = isempty(algo.weights) ? initialweights(δ, FT) : algo.weights
+
+    @assert length(startpos) == size(δ, 1) == size(δ, 2) == size(weights, 1) == size(weights, 2) "Wrong size of weights?"
+
     Lw = weightedlaplacian(weights)
     pinvLw = pinv(Lw)
-    return Layout(δ, weights, startpositions, pinvLw, iterations, abstols, reltols, abstolx)
+    s = stress(startpos, δ, weights)
+
+    # the `state` of the iterator is (#iter, old stress, old pos, weights, pinvLw, stopflag)
+    return startpos, (1, s, startpos, weights, pinvLw, maxiter, false)
 end
 
-layout(δ, dim::Int; kw_args...) = layout(δ, Point{dim,Float64}; kw_args...)
+function Base.iterate(iter::LayoutIterator{<:Stress{Dim,Ptype}}, state) where {Dim,Ptype}
+    algo, δ = iter.algorithm, iter.adj_matrix
+    i, oldstress, oldpos, weights, pinvLw, maxiter, stopflag = state
+    # newstress, oldstress, X0, i = state
 
-function layout(δ, PT::Type{Point{N,T}}=Point{2,Float64}; startpositions=rand(PT, size(δ, 1)),
-                kw_args...) where {N,T}
-    return layout!(δ, startpositions; kw_args...)
-end
-
-function layout!(δ, startpositions::AbstractVector{Point{N,T}}; iterations=400 * size(δ, 1)^2,
-                 kw_args...) where {N,T}
-    iter = Layout(δ, Point{N,T}; startpositions=startpositions, kw_args...)
-    num_iterations = 0
-    next = iterate(iter)
-    while next != nothing
-        i, state = next
-        next = iterate(iter, state)
-        num_iterations += 1
-    end
-    num_iterations > iterations && @warn("Maximum number of iterations reached without convergence")
-    return iter.positions
-end
-
-function iterate(network::Layout)
-    network.iterations == 0 && return nothing
-    s = stress(network.positions, network.δ, network.weights)
-    return network, (s, s, network.positions, 0)
-end
-
-function iterate(network::Layout, state)
-    newstress, oldstress, X0, i = state
-    δ, weights, pinvLw, positions, X0 = network.δ, network.weights, network.pinvLw, network.positions,
-                                        copy(network.positions)
-    # TODO the faster way is to drop the first row and col from the iteration
-    t = LZ(X0, δ, weights)
-    positions = pinvLw * (t * X0)
-    @assert all(x -> all(map(isfinite, x)), positions)
-    newstress, oldstress = stress(positions, δ, weights), newstress
-    network.positions[:] = positions
-
-    if i > network.iterations ||
-       abs(newstress - oldstress) < network.reltols * newstress ||
-       abs(newstress - oldstress) < network.abstols ||
-       norm(positions - X0) < network.abstolx
+    if i >= maxiter || stopflag
         return nothing
     end
 
-    return network, (newstress, oldstress, X0, (i + 1))
+    # TODO the faster way is to drop the first row and col from the iteration
+    t = LZ(oldpos, δ, weights)
+    positions = similar(oldpos) # allocate new array but keep type of oldpos
+    mul!(positions, pinvLw, (t * oldpos))
+    @assert all(x -> all(map(isfinite, x)), positions)
+    newstress = stress(positions, δ, weights)
 
+    if abs(newstress - oldstress) < algo.reltols * newstress ||
+       abs(newstress - oldstress) < algo.abstols ||
+       norm(positions - oldpos) < algo.abstolx
+        stopflag = true
+    end
+
+    return positions, (i + 1, newstress, positions, weights, pinvLw, maxiter, stopflag)
 end
 
 """
@@ -197,5 +217,3 @@ function LZ(Z::AbstractVector{Point{N,T}}, d, weights) where {N,T}
     end
     return L
 end
-
-end # end of module

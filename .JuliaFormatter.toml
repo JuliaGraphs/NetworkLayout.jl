@@ -1,5 +1,5 @@
 always_for_in = true
-always_use_return = true
+always_use_return = false
 import_to_using = true
 margin = 110
 pipe_to_function_call = true

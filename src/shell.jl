@@ -1,50 +1,59 @@
-"""
-This function is copy from [IainNZ](https://github.com/IainNZ)'s [GraphLayout.jl](https://github.com/IainNZ/GraphLayout.jl)
-Position nodes in concentric circles.
-**Parameters**
-*adj_matrix*
-a graph
-*nlist*
-Vector of Vector, Vector of node Vector for each shell.
-**Examples**
-```
-julia> g = graphfamous("karate")
-julia> nlist = Array(Vector{Int}, 2)
-julia> nlist[1] = [1:5]
-julia> nlist[2] = [6:num_vertiecs(g)]
-julia> locs_x, locs_y = shell_layout(g, nlist)
-```
-"""
-module Shell
+export Shell, shell
 
-using GeometryBasics
+"""
+    Shell(; kwargs...)(adj_matrix)
+    shell(adj_matrix; kwargs...)
 
-function layout(adj_matrix::AbstractMatrix; nlist::Union{Nothing,Vector{Vector{Int}}}=nothing)
-    return layout!(adj_matrix, nlist)
+Position nodes in concentric circles. Without further arguments all nodes will
+be placed on a circle with radius 1.0. Specify placement of nodes using the
+`nlist` argument.
+
+Takes adjacency matrix representation of a network and returns coordinates of
+the nodes.
+
+## Keyword Arguments
+- `Ptype=Float64`: Determines the output type `Point{2,Ptype}`.
+- `nlist=Vector{Int}[]`
+
+  Vector of Vector of node indices. Tells the algorithm, which nodes to place on
+  which shell from inner to outer. Nodes which are not present in this list will
+  be place on additional outermost shell.
+
+This function started as a copy from [IainNZ](https://github.com/IainNZ)'s [GraphLayout.jl](https://github.com/IainNZ/GraphLayout.jl)
+"""
+@addcall struct Shell{Ptype} <: AbstractLayout{2,Ptype}
+    nlist::Vector{Vector{Int}}
 end
 
-function layout!(adj_matrix::AbstractMatrix, nlist::Union{Nothing,Vector{Vector{Int}}})
-    if size(adj_matrix, 1) == 1
-        return Point{2,Float64}[Point(0.0, 0.0)]
+Shell(; Ptype=Float64, nlist=Vector{Int}[]) = Shell{Ptype}(nlist)
+
+function layout(algo::Shell{Ptype}, adj_matrix::AbstractMatrix) where {Ptype}
+    N = assertsquare(adj_matrix)
+
+    nlist = copy(algo.nlist)
+
+    # if the list does not contain all the nodes push missing nodes to new shell
+    listed_nodes = Iterators.flatten(nlist)
+    @assert allunique(listed_nodes)
+    diff = setdiff(1:N, listed_nodes)
+    if !isempty(diff)
+        push!(nlist, diff)
     end
-    if nlist == nothing
-        nlist = Array{Vector{Int}}(undef, 1)
-        nlist[1] = collect(1:size(adj_matrix, 1))
-    end
+
+    # if there is more than one node in the innermost shell start with radius 1.0
     radius = 0.0
     if length(nlist[1]) > 1
         radius = 1.0
     end
-    T = Point{2,Float64}
-    locs = T[]
+
+    T = Point{2,Ptype}
+    locs = Vector{T}(undef, N)
     for nodes in nlist
         # Discard the extra angle since it matches 0 radians.
-        θ = range(0, stop=2pi, length=length(nodes) + 1)[1:(end - 1)]
+        θ = range(0; stop=2pi, length=length(nodes) + 1)[1:(end - 1)]
         x = T[(radius * cos(o), radius * sin(o)) for o in θ]
-        append!(locs, x)
+        locs[nodes] = x
         radius += 1.0
     end
     return locs
 end
-
-end # end of module

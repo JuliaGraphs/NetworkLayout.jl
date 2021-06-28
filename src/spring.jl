@@ -1,78 +1,86 @@
+export Spring, spring
+
 """
-    Use the spring/repulsion model of Fruchterman and Reingold (1991):
-        Attractive force:  f_a(d) =  d^2 / k
-        Repulsive force:  f_r(d) = -k^2 / d
-    where d is distance between two vertices and the optimal distance
-    between vertices k is defined as C * sqrt( area / num_vertices )
-    where C is a parameter we can adjust
+    Spring(; kwargs...)(adj_matrix)
+    spring(adj_matrix; kwargs...)
 
-    Arguments:
-    adj_matrix    Adjacency matrix of some type. Non-zero of the eltype
-                  of the matrix is used to determine if a link exists,
-                  but currently no sense of magnitude
-    C             Constant to fiddle with density of resulting layout
-    iterations    Number of iterations we apply the forces
-    initialtemp   Initial "temperature", controls movement per iteration
+Use the spring/repulsion model of Fruchterman and Reingold (1991) with
+
+- Attractive force:  `f_a(d) =  d^2 / k`
+- Repulsive force:  `f_r(d) = -k^2 / d`
+
+where `d` is distance between two vertices and the optimal distance between
+vertices `k` is defined as `C * sqrt( area / num_vertices )` where `C` is a parameter
+we can adjust
+
+Takes adjacency matrix representation of a network and returns coordinates of
+the nodes.
+
+## Keyword Arguments
+- `dim=2`, `Ptype=Float64`: Determines dimension and output type `Point{dim,Ptype}`.
+- `C=2.0`: Constant to fiddle with density of resulting layout
+- `iterations=100`: maximum number of iterations
+- `initialtemp=2.0`: Initial "temperature", controls movement per iteration
+- `initialpos=Point{dim,Ptype}[]`
+
+  Provide list of initial positions. If length does not match Network size the initial
+  positions will be truncated or filled up with random values between [-1,1] in every coordinate.
+
+- `seed=1`: Seed for random initial positions.
 """
-module Spring
-
-using GeometryBasics
-using LinearAlgebra: norm
-
-struct Layout{M<:AbstractMatrix,P<:AbstractVector,T<:AbstractFloat}
-    adj_matrix::M
-    positions::P
-    C::T
+@addcall struct Spring{Dim,Ptype} <: IterativeLayout{Dim,Ptype}
+    C::Float64
     iterations::Int
-    initialtemp::T
+    initialtemp::Float64
+    initialpos::Vector{Point{Dim,Ptype}}
+    seed::UInt
 end
 
-function Layout(adj_matrix, PT::Type{Point{N,T}}=Point{2,Float64};
-                startpositions=map(x -> 2 .* rand(PT) .- 1, 1:size(adj_matrix, 1)), C=2.0, iterations=100,
-                initialtemp=2.0) where {N,T}
-    return Layout(adj_matrix, startpositions, T(C), Int(iterations), T(initialtemp))
-end
-
-layout(adj_matrix, dim::Int; kw_args...) = layout(adj_matrix, Point{dim,Float64}; kw_args...)
-
-function layout(adj_matrix, PT::Type{Point{N,T}}=Point{2,Float64};
-                startpositions=map(x -> 2 .* rand(PT) .- 1, 1:size(adj_matrix, 1)), kw_args...) where {N,T}
-    return layout!(adj_matrix, startpositions; kw_args...)
-end
-
-function layout!(adj_matrix, startpositions::AbstractVector{Point{N,T}}; kw_args...) where {N,T}
-    size(adj_matrix, 1) != size(adj_matrix, 2) && error("Adj. matrix must be square.")
-    # Layout object for the graph
-    network = Layout(adj_matrix, Point{N,T}; startpositions=startpositions, kw_args...)
-    next = iterate(network)
-    while next != nothing
-        (i, state) = next
-        next = iterate(network, state)
+function Spring(; dim=2, Ptype=Float64, C=2.0, iterations=100, initialtemp=2.0, initialpos=Point{dim,Ptype}[],
+                seed=1)
+    if !isempty(initialpos)
+        initialpos = Point.(initialpos)
+        Ptype = eltype(eltype(initialpos))
+        # TODO fix initial pos if list has points of multiple types
+        Ptype == Any && error("Please provide list of Point{N,T} with same T")
+        dim = length(eltype(initialpos))
     end
-    return network.positions
+    return Spring{dim,Ptype}(C, iterations, initialtemp, initialpos, seed)
 end
 
-function iterate(network::Layout)
-    network.iterations == 1 && return nothing
-    return network, 1
+function Base.iterate(iter::LayoutIterator{<:Spring{Dim,Ptype}}) where {Dim,Ptype}
+    algo, adj_matrix = iter.algorithm, iter.adj_matrix
+    N = size(adj_matrix, 1)
+    M = length(algo.initialpos)
+    rng = MersenneTwister(algo.seed)
+    startpos = Vector{Point{Dim,Ptype}}(undef, N)
+    # take the first
+    for i in 1:min(N, M)
+        startpos[i] = algo.initialpos[i]
+    end
+    # fill the rest with random points
+    for i in (M + 1):N
+        startpos[i] = 2 .* rand(rng, Point{Dim,Ptype}) .- 1
+    end
+    # iteratorstate: #iter nr, old pos
+    return (startpos, (1, startpos))
 end
 
-function iterate(network::Layout{M,P,T}, state) where {M,P,T}
+function Base.iterate(iter::LayoutIterator{<:Spring}, state)
+    algo, adj_matrix = iter.algorithm, iter.adj_matrix
+    iteration, old_pos = state
+    iteration >= algo.iterations && return nothing
+
     # The optimal distance bewteen vertices
-    adj_matrix = network.adj_matrix
     N = size(adj_matrix, 1)
-    force = zeros(eltype(P), N)
-    locs = network.positions
-    C = network.C
-    iterations = network.iterations
-    initialtemp = network.initialtemp
-    N = size(adj_matrix, 1)
+    force = similar(old_pos)
     Ftype = eltype(force)
-    K = C * sqrt(4.0 / N)
+    K = algo.C * sqrt(4.0 / N)
 
+    locs = copy(old_pos)
     # Calculate forces
     for i in 1:N
-        force_vec = Ftype(0)
+        force_vec = zero(Ftype)
         for j in 1:N
             i == j && continue
             d = norm(locs[j] .- locs[i])
@@ -94,7 +102,7 @@ function iterate(network::Layout{M,P,T}, state) where {M,P,T}
         force[i] = force_vec
     end
     # Cool down
-    temp = initialtemp / state
+    temp = algo.initialtemp / iteration
     # Now apply them, but limit to temperature
     for i in 1:N
         force_mag = norm(force[i])
@@ -102,8 +110,5 @@ function iterate(network::Layout{M,P,T}, state) where {M,P,T}
         locs[i] += force[i] .* scale
     end
 
-    network.iterations == state && return nothing
-    return network, (state + 1)
+    return locs, (iteration + 1, locs)
 end
-
-end # end of module

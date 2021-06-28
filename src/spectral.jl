@@ -1,17 +1,29 @@
-# -----------------------------------------------------
-# -----------------------------------------------------
-
-# see: http://www.research.att.com/export/sites/att_labs/groups/infovis/res/legacy_papers/DBLP-journals-camwa-Koren05.pdf
-# also: http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.3.2055&rep=rep1&type=pdf
-
-# this recipe uses the technique of Spectral Graph Drawing, which is an
-# under-appreciated method of graph layouts; easier, simpler, and faster
-# than the more common spring-based methods.
-
-module Spectral
-
-using GeometryBasics
 using LinearAlgebra: diag, eigen, Diagonal
+
+export Spectral, spectral
+
+"""
+    Spectral(; kwargs...)(adj_matrix)
+    spectral(adj_matrix; kwargs...)
+
+This algorithm uses the technique of Spectral Graph Drawing, which is an
+under-appreciated method of graph layouts; easier, simpler, and faster than the
+more common spring-based methods. For reference see [Yehuda Koren,
+2002](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.3.2055&rep=rep1&type=pdf).
+
+Takes adjacency matrix representation of a network and returns coordinates of
+the nodes.
+
+## Keyword Arguments
+- `dim=3`, `Ptype=Float64`: Determines dimension and output type `Point{dim,Ptype}`.
+- `nodeweights=Float64[]`: Vector of weights. If network size does not match the
+  length of `nodesize` use `ones` instead.
+"""
+@addcall struct Spectral{Dim,Ptype,FT<:AbstractFloat} <: AbstractLayout{Dim,Ptype}
+    nodeweights::Vector{FT}
+end
+
+Spectral(; dim=3, Ptype=Float64, nodeweights=Float64[]) = Spectral{dim,Ptype,eltype(nodeweights)}(nodeweights)
 
 function make_symmetric(adj_matrix::AbstractMatrix)
     adj_matrix = copy(adj_matrix)
@@ -31,7 +43,7 @@ function compute_laplacian(adj_matrix, node_weights)
     adj_matrix = adj_matrix .* sqrt.(node_weights * node_weights')
 
     # D is a diagonal matrix with the degrees (total weights for that node) on the diagonal
-    deg = vec(sum(adj_matrix, dims=1)) - diag(adj_matrix)
+    deg = vec(sum(adj_matrix; dims=1)) - diag(adj_matrix)
     D = Matrix(Diagonal(deg))
     T = eltype(node_weights)
     # Laplacian (L = D - adj_matrix)
@@ -39,19 +51,20 @@ function compute_laplacian(adj_matrix, node_weights)
     return L, D
 end
 
-function layout(adj_matrix::M; node_weights=ones(eltype(M), size(adj_matrix, 1)),
-                kw_args...) where {M<:AbstractMatrix}
-    return layout!(adj_matrix, node_weights, kw_args...)
-end
+function layout(algo::Spectral{Dim,Ptype,FT}, adj_matrix::AbstractMatrix) where {Dim,Ptype,FT}
+    N = assertsquare(adj_matrix)
+    # try to use user provided nodeweights
+    nodeweights = if length(algo.nodeweights) == N
+        algo.nodeweights
+    else
+        ones(FT, N)
+    end
 
-function layout!(adj_matrix, node_weights, kw_args...)
     adj_matrix = make_symmetric(adj_matrix)
-    L, D = compute_laplacian(adj_matrix, node_weights)
+    L, D = compute_laplacian(adj_matrix, nodeweights)
     # get the matrix of eigenvectors
     v = eigen(L, D).vectors
     # x, y, and z are the 2nd through 4th eigenvectors of the solution to the
     # generalized eigenvalue problem Lv = λDv
-    return [Point(v[2, i], v[3, i], v[4, i]) for i in 1:size(v, 2)]
+    return map(x -> Point{Dim,Ptype}(x[2:(Dim + 1)]...), eachrow(v))
 end
-
-end # end of module

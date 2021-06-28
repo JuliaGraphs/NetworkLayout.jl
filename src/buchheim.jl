@@ -1,18 +1,32 @@
+export Buchheim, buchheim
+
 """
+    Buchheim(; kwargs...)(adj_matrix)
+    Buchheim(; kwargs...)(adj_list)
+    buchheim(adj_matrix; kwargs...)
+    buchheim(adj_list; kwargs...)
+
 Using the algorithm proposed in the paper,
-"Improving Walker's Algorithm to Run in Linear Time"
+["Improving Walker's Algorithm to Run in Linear Time"](http://dirk.jivas.de/papers/buchheim02improving.pdf)
 by Christoph Buchheim, Michael Junger, Sebastian Leipert
-(http://dirk.jivas.de/papers/buchheim02improving.pdf)
 
-Arguments
-tree    Adjacency List that represents the given tree
+Takes adjacency matrix or list representation of given tree
+and returns coordinates of the nodes.
 
-Returns
-positions     co-ordinates of the layout
+## Keyword Arguments
+- `Ptype=Float64`: Determines the output type `Point{2,Ptype}`.
+- `nodesize=Float64[]`
+
+  Determines the size of each of the node. If network size does not match the
+  length of `nodesize` fill up with `ones` or truncate given parameter.
 """
-module Buchheim
+@addcall struct Buchheim{Ptype,T} <: AbstractLayout{2,Ptype}
+    nodesize::Vector{T}
+end
 
-using GeometryBasics
+function Buchheim(; Ptype=Float64, nodesize=Float64[])
+    Buchheim{Ptype,eltype(nodesize)}(nodesize)
+end
 
 struct Tree{A<:AbstractVector,P<:AbstractVector,F}
     nodes::A
@@ -26,7 +40,7 @@ struct Tree{A<:AbstractVector,P<:AbstractVector,F}
     nodesize::F
 end
 
-function Tree(tree::AbstractVector, nodesize)
+function Tree(tree::AbstractVector, nodesize, Ptype)
     len = length(tree)
     mod = zeros(len)
     thread = zeros(Int, len)
@@ -35,17 +49,34 @@ function Tree(tree::AbstractVector, nodesize)
     change = zeros(len)
     ancestor = collect(1:len)
     nodes = copy(tree)
-    positions = zeros(Point{2,Float64}, len)
+    positions = zeros(Point{2,Ptype}, len)
     t = Tree(nodes, mod, thread, ancestor, prelim, shift, change, positions, nodesize)
     return t
 end
 
-function layout(t::AbstractVector; nodesize=ones(length(t)))
-    return layout!(t, nodesize)
+function adj_mat_to_list(M::AbstractMatrix)
+    N = size(M, 1)
+    list = Vector{Vector{Int}}(undef, N)
+    for i in 1:N
+        list[i] = findall(!iszero, view(M, i, :))
+    end
+    return list
 end
 
-function layout!(t::AbstractVector, nodesize)
-    tree = Tree(t, nodesize)
+function layout(para::Buchheim, adj_matrix::AbstractMatrix)
+    assertsquare(adj_matrix)
+    list = adj_mat_to_list(adj_matrix)
+    layout(para, list)
+end
+
+function layout(para::Buchheim{Ptype,T}, adj_list::AbstractVector) where {Ptype,T}
+    # TODO: check if adj_list represents directed tree? julia crashes for dir graph!
+    nodesize = ones(T, length(adj_list))
+    for i in 1:min(length(adj_list), length(para.nodesize))
+        nodesize[i] = para.nodesize[i]
+    end
+
+    tree = Tree(adj_list, nodesize, Ptype)
     first_walk(1, tree)
     second_walk(1, -tree.prelim[1], 0.0, tree)
     return tree.positions
@@ -233,5 +264,3 @@ function next_right(v, t::Tree)
         return thread[v]
     end
 end
-
-end #end of module
