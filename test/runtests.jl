@@ -254,12 +254,6 @@ jagmesh_adj = jagmesh()
             @test typeof(locs) == Vector{Point{2,Float64}}
         end
 
-        # This testset is to cover a piece of code
-        # that was not covered anymore after fixing a bug
-        @testset "Test another Binary tree" begin
-            tree = [[5, 6], [6], [7, 8], [8], [], [9], [9], [], []]
-            locs = @time Buchheim()(tree)
-            @test typeof(locs) == Vector{Point{2,Float64}}
         @testset "test requirements" begin
             # more than one parent
             g = SimpleDiGraph(3)
