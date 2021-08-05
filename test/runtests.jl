@@ -153,6 +153,13 @@ jagmesh_adj = jagmesh()
             @test positions ==
                   spring(adj_matrix; C=2.0, iterations=100, initialtemp=2.0, Ptype=Float32, dim=3)
         end
+
+        @testset "test single node graph" begin
+            g = SimpleGraph(1)
+            pos = Spring()(g)
+            @test length(pos) == 1
+            @test !isnan(pos[1])
+        end
     end
 
     @testset "Testing Spectral Algorithm" begin

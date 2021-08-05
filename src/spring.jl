@@ -106,6 +106,7 @@ function Base.iterate(iter::LayoutIterator{<:Spring}, state)
     # Now apply them, but limit to temperature
     for i in 1:N
         force_mag = norm(force[i])
+        iszero(force_mag) && continue
         scale = min(force_mag, temp) ./ force_mag
         locs[i] += force[i] .* scale
     end
