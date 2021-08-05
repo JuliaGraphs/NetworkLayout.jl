@@ -70,7 +70,7 @@ function layout(para::Buchheim, adj_matrix::AbstractMatrix)
 end
 
 function layout(para::Buchheim{Ptype,T}, adj_list::AbstractVector) where {Ptype,T}
-    # TODO: check if adj_list represents directed tree? julia crashes for dir graph!
+    assert_rooted_tree(adj_list)
     nodesize = ones(T, length(adj_list))
     for i in 1:min(length(adj_list), length(para.nodesize))
         nodesize[i] = para.nodesize[i]
@@ -85,8 +85,7 @@ end
 function parent(v, t::Tree)
     tree = t.nodes
     for i in 1:length(tree)
-        y = findall(x -> (x == v), tree[i])
-        if length(y) != 0
+        if v ∈ tree[i]
             return i
         end
     end
@@ -262,5 +261,34 @@ function next_right(v, t::Tree)
         return tree[v][end]
     else
         return thread[v]
+    end
+end
+
+"""
+    assert_rooted_tree(adj_list::AbstractVector{<:AbstractVector})
+
+Check that
+ - every node has only one parent
+ - node 1 is head node (has no parent)
+ - all nodes are part of the tree
+
+Which are the 3 requirements for a "rooted tree" in the Buchheim paper.
+"""
+function assert_rooted_tree(adj_list::AbstractVector{<:AbstractVector})
+    visited = [false for _ in 1:length(adj_list)]
+    for childs in adj_list
+        for child in childs
+            if visited[child] == false
+                visited[child] = true
+            else # node was visited before
+                throw(ArgumentError("Pathes not unique ($child has multiple parent nodes)!"))
+            end
+        end
+    end
+    if visited[1] !== false
+        throw(ArgumentError("Node 1 needs to be the root!"))
+    end
+    if !all(view(visited, 2:lastindex(visited)))
+        throw(ArgumentError("Some nodes are not part of the tree."))
     end
 end
