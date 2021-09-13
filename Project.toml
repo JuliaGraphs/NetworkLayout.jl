@@ -1,6 +1,6 @@
 name = "NetworkLayout"
 uuid = "46757867-2c16-5918-afeb-47bfcb05e46a"
-version = "0.4.1"
+version = "0.4.2"
 
 [deps]
 GeometryBasics = "5c1252a2-5f33-56bf-86c9-59e7332b4326"
@@ -10,7 +10,7 @@ Requires = "ae029012-a4dd-5104-9daa-d747884805df"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 
 [compat]
-GeometryBasics = "0.3"
+GeometryBasics = "0.4"
 Requires = "1"
 julia = "1"
 

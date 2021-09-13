@@ -26,7 +26,7 @@ jagmesh_adj = jagmesh()
             ip = [(1, 2.0, 3.0), (1, 2.0, 3)]
             algo = SFDP(; initialpos=ip)
             @test algo isa SFDP{3,Float64}
-            ip = [Point2f0(1, 2)]
+            ip = [Point2f(1, 2)]
             algo = SFDP(; initialpos=ip)
             @test algo isa SFDP{2,Float32}
         end
@@ -47,9 +47,9 @@ jagmesh_adj = jagmesh()
         @testset "Testing Jagmesh1 graph" begin
             println("SFDP Jagmesh1")
             positions = @time SFDP(; dim=2, Ptype=Float32, tol=0.9, K=1, iterations=10)(jagmesh_adj)
-            @test typeof(positions) == Vector{Point2f0}
+            @test typeof(positions) == Vector{Point2f}
             positions = @time SFDP(; dim=3, Ptype=Float32, tol=0.9, K=1, iterations=10)(jagmesh_adj)
-            @test typeof(positions) == Vector{Point3f0}
+            @test typeof(positions) == Vector{Point3f}
         end
 
         @testset "Testing wheel_graph" begin
@@ -57,10 +57,10 @@ jagmesh_adj = jagmesh()
             g = wheel_graph(10)
             adj_matrix = adjacency_matrix(g)
             positions = @time SFDP(; dim=2, Ptype=Float32, tol=0.1, K=1)(adj_matrix)
-            @test typeof(positions) == Vector{Point2f0}
+            @test typeof(positions) == Vector{Point2f}
             @test positions == sfdp(adj_matrix; dim=2, Ptype=Float32, tol=0.1, K=1)
             positions = @time SFDP(; dim=3, Ptype=Float32, tol=0.1, K=1)(adj_matrix)
-            @test typeof(positions) == Vector{Point3f0}
+            @test typeof(positions) == Vector{Point3f}
             @test positions == sfdp(adj_matrix; dim=3, Ptype=Float32, tol=0.1, K=1)
         end
     end
@@ -75,7 +75,7 @@ jagmesh_adj = jagmesh()
             ip = [(1, 2.0, 3.0), (1, 2.0, 3)]
             algo = Stress(; initialpos=ip)
             @test algo isa Stress{3,Float64}
-            ip = [Point2f0(1, 2)]
+            ip = [Point2f(1, 2)]
             algo = Stress(; initialpos=ip)
             @test algo isa Stress{2,Float32}
         end
@@ -96,9 +96,9 @@ jagmesh_adj = jagmesh()
         @testset "Testing Jagmesh1 graph" begin
             println("Stress Jagmesh1")
             positions = @time Stress(; iterations=10, Ptype=Float32)(jagmesh_adj)
-            @test typeof(positions) == Vector{Point2f0}
+            @test typeof(positions) == Vector{Point2f}
             positions = @time Stress(; iterations=10, dim=3, Ptype=Float32)(jagmesh_adj)
-            @test typeof(positions) == Vector{Point3f0}
+            @test typeof(positions) == Vector{Point3f}
         end
 
         @testset "Testing wheel_graph" begin
@@ -106,10 +106,10 @@ jagmesh_adj = jagmesh()
             g = wheel_graph(10)
             adj_matrix = adjacency_matrix(g)
             positions = @time Stress(; iterations=10, Ptype=Float32)(adj_matrix)
-            @test typeof(positions) == Vector{Point2f0}
+            @test typeof(positions) == Vector{Point2f}
             @test positions == stress(adj_matrix; iterations=10, Ptype=Float32)
             positions = @time Stress(; iterations=10, dim=3, Ptype=Float32)(adj_matrix)
-            @test typeof(positions) == Vector{Point3f0}
+            @test typeof(positions) == Vector{Point3f}
             @test positions == stress(adj_matrix; iterations=10, dim=3, Ptype=Float32)
         end
     end
@@ -124,7 +124,7 @@ jagmesh_adj = jagmesh()
             ip = [(1, 2.0, 3.0), (1, 2.0, 3)]
             algo = Spring(; initialpos=ip)
             @test algo isa Spring{3,Float64}
-            ip = [Point2f0(1, 2)]
+            ip = [Point2f(1, 2)]
             algo = Spring(; initialpos=ip)
             @test algo isa Spring{2,Float32}
         end
@@ -146,10 +146,10 @@ jagmesh_adj = jagmesh()
             g = wheel_graph(10)
             adj_matrix = adjacency_matrix(g)
             positions = @time Spring(; C=2.0, iterations=100, initialtemp=2.0, Ptype=Float32)(adj_matrix)
-            @test typeof(positions) == Vector{Point2f0}
+            @test typeof(positions) == Vector{Point2f}
             @test positions == spring(adj_matrix; C=2.0, iterations=100, initialtemp=2.0, Ptype=Float32)
             positions = @time Spring(; C=2.0, iterations=100, initialtemp=2.0, Ptype=Float32, dim=3)(adj_matrix)
-            @test typeof(positions) == Vector{Point3f0}
+            @test typeof(positions) == Vector{Point3f}
             @test positions ==
                   spring(adj_matrix; C=2.0, iterations=100, initialtemp=2.0, Ptype=Float32, dim=3)
         end
