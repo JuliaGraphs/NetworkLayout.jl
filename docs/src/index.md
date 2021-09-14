@@ -45,7 +45,7 @@ SFDP
 ### Example
 ```@example layouts
 g = wheel_graph(10)
-layout = SFDP(tol=0.01, C=0.2, K=1)
+layout = SFDP(Ptype=Float32, tol=0.01, C=0.2, K=1)
 f, ax, p = graphplot(g, layout=layout)
 hidedecorations!(ax); hidespines!(ax); ax.aspect = DataAspect(); f
 ```
@@ -54,7 +54,7 @@ hidedecorations!(ax); hidespines!(ax); ax.aspect = DataAspect(); f
 ```@example layouts
 iterator = LayoutIterator(layout, g)
 record(f, "sfdp_animation.mp4", iterator; framerate = 10) do pos
-    p[:node_positions][] = pos
+    p[:node_pos][] = pos
     autolimits!(ax)
 end
 nothing #hide
@@ -90,7 +90,7 @@ Spring
 ### Example
 ```@example layouts
 g = smallgraph(:cubical)
-layout = Spring()
+layout = Spring(Ptype=Float32)
 f, ax, p = graphplot(g, layout=layout)
 hidedecorations!(ax); hidespines!(ax); ax.aspect = DataAspect(); f #hide
 ```
@@ -98,7 +98,7 @@ hidedecorations!(ax); hidespines!(ax); ax.aspect = DataAspect(); f #hide
 ```@example layouts
 iterator = LayoutIterator(layout, g)
 record(f, "spring_animation.mp4", iterator; framerate = 10) do pos
-    p[:node_positions][] = pos
+    p[:node_pos][] = pos
     autolimits!(ax)
 end
 nothing #hide
@@ -112,7 +112,7 @@ Stress
 ### Example
 ```@example layouts
 g = complete_graph(10)
-layout = Stress()
+layout = Stress(Ptype=Float32)
 f, ax, p = graphplot(g, layout=layout)
 hidedecorations!(ax); hidespines!(ax); ax.aspect = DataAspect(); f #hide
 ```
@@ -121,7 +121,7 @@ hidedecorations!(ax); hidespines!(ax); ax.aspect = DataAspect(); f #hide
 ```@example layouts
 iterator = LayoutIterator(layout, g)
 record(f, "stress_animation.mp4", iterator; framerate = 10) do pos
-    p[:node_positions][] = pos
+    p[:node_pos][] = pos
     autolimits!(ax)
 end
 nothing #hide
