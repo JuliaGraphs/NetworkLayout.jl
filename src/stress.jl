@@ -72,9 +72,15 @@ The main equation to solve is (8) of:
     seed::UInt
 end
 
-function Stress(; dim=2, Ptype=Float64, iterations=:auto, abstols=(√(eps(Float64))),
-                reltols=(√(eps(Float64))), abstolx=(√(eps(Float64))), weights=Array{Float64}(undef, 0, 0),
-                initialpos=Point{dim,Ptype}[], seed=1)
+function Stress(; dim=2,
+                Ptype=Float64,
+                iterations=:auto,
+                abstols=0.0,
+                reltols=10e-6,
+                abstolx=10e-6,
+                weights=Array{Float64}(undef, 0, 0),
+                initialpos=Point{dim,Ptype}[],
+                seed=1)
     if !isempty(initialpos)
         initialpos = Point.(initialpos)
         Ptype = eltype(eltype(initialpos))
