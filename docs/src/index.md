@@ -111,16 +111,22 @@ Stress
 ```
 ### Example
 ```@example layouts
-g = complete_graph(10)
+g = SimpleGraph(936)
+for l in eachline(joinpath(@__DIR__,"..","..","test","jagmesh1.mtx"))
+    s = split(l, " ")
+    src, dst = parse(Int, s[1]), parse(Int, s[2])
+    src != dst && add_edge!(g, src, dst)
+end
+
 layout = Stress(Ptype=Float32)
-f, ax, p = graphplot(g, layout=layout)
+f, ax, p = graphplot(g; layout=layout, node_size=3, edge_width=1)
 hidedecorations!(ax); hidespines!(ax); ax.aspect = DataAspect(); f #hide
 ```
 
 ### Iterator Example
 ```@example layouts
 iterator = LayoutIterator(layout, g)
-record(f, "stress_animation.mp4", iterator; framerate = 10) do pos
+record(f, "stress_animation.mp4", iterator; framerate = 7) do pos
     p[:node_pos][] = pos
     autolimits!(ax)
 end
