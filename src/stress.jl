@@ -72,9 +72,15 @@ The main equation to solve is (8) of:
     seed::UInt
 end
 
-function Stress(; dim=2, Ptype=Float64, iterations=:auto, abstols=(√(eps(Float64))),
-                reltols=(√(eps(Float64))), abstolx=(√(eps(Float64))), weights=Array{Float64}(undef, 0, 0),
-                initialpos=Point{dim,Ptype}[], seed=1)
+function Stress(; dim=2,
+                Ptype=Float64,
+                iterations=:auto,
+                abstols=0.0,
+                reltols=10e-6,
+                abstolx=10e-6,
+                weights=Array{Float64}(undef, 0, 0),
+                initialpos=Point{dim,Ptype}[],
+                seed=1)
     if !isempty(initialpos)
         initialpos = Point.(initialpos)
         Ptype = eltype(eltype(initialpos))
@@ -84,13 +90,6 @@ function Stress(; dim=2, Ptype=Float64, iterations=:auto, abstols=(√(eps(Float
     end
     IT, FT, WT = typeof(iterations), typeof(abstols), typeof(weights)
     Stress{dim,Ptype,IT,FT,WT}(iterations, abstols, reltols, abstolx, weights, initialpos, seed)
-end
-
-function initialweights(D, T)::SparseMatrixCSC{T,Int64}
-    map(D) do d
-        x = T(d^(-2.0))
-        return isfinite(x) ? x : zero(T)
-    end
 end
 
 function Base.iterate(iter::LayoutIterator{<:Stress{Dim,Ptype,IT,FT}}) where {Dim,Ptype,IT,FT}
@@ -109,37 +108,38 @@ function Base.iterate(iter::LayoutIterator{<:Stress{Dim,Ptype,IT,FT}}) where {Di
     end
 
     # calculate iteration if :auto
-    maxiter = algo.iterations === :auto ? 400 * size(δ, 1)^2 : algo.iterations
+    maxiter = algo.iterations === :auto ? 400 * N^2 : algo.iterations
     @assert maxiter > 0 "Iterations need to be > 0"
 
     # if user provided weights not empty try those
-    weights = isempty(algo.weights) ? initialweights(δ, FT) : algo.weights
+    make_symmetric!(δ)
+    distances = pairwise_distance(δ, FT)
+    weights = isempty(algo.weights) ? distances .^ (-2) : algo.weights
 
     @assert length(startpos) == size(δ, 1) == size(δ, 2) == size(weights, 1) == size(weights, 2) "Wrong size of weights?"
 
     Lw = weightedlaplacian(weights)
     pinvLw = pinv(Lw)
-    s = stress(startpos, δ, weights)
+    oldstress = stress(startpos, distances, weights)
 
-    # the `state` of the iterator is (#iter, old stress, old pos, weights, pinvLw, stopflag)
-    return startpos, (1, s, startpos, weights, pinvLw, maxiter, false)
+    # the `state` of the iterator is (#iter, old stress, old pos, weights, distances pinvLw, stopflag)
+    return startpos, (1, oldstress, startpos, weights, distances, pinvLw, maxiter, false)
 end
 
 function Base.iterate(iter::LayoutIterator{<:Stress{Dim,Ptype}}, state) where {Dim,Ptype}
     algo, δ = iter.algorithm, iter.adj_matrix
-    i, oldstress, oldpos, weights, pinvLw, maxiter, stopflag = state
-    # newstress, oldstress, X0, i = state
+    i, oldstress, oldpos, weights, distances, pinvLw, maxiter, stopflag = state
 
     if i >= maxiter || stopflag
         return nothing
     end
 
     # TODO the faster way is to drop the first row and col from the iteration
-    t = LZ(oldpos, δ, weights)
+    t = LZ(oldpos, distances, weights)
     positions = similar(oldpos) # allocate new array but keep type of oldpos
     mul!(positions, pinvLw, (t * oldpos))
     @assert all(x -> all(map(isfinite, x)), positions)
-    newstress = stress(positions, δ, weights)
+    newstress = stress(positions, distances, weights)
 
     if abs(newstress - oldstress) < algo.reltols * newstress ||
        abs(newstress - oldstress) < algo.abstols ||
@@ -147,7 +147,7 @@ function Base.iterate(iter::LayoutIterator{<:Stress{Dim,Ptype}}, state) where {D
         stopflag = true
     end
 
-    return positions, (i + 1, newstress, positions, weights, pinvLw, maxiter, stopflag)
+    return positions, (i + 1, newstress, positions, weights, distances, pinvLw, maxiter, stopflag)
 end
 
 """
@@ -160,8 +160,7 @@ Input:
 
 See (1) of Reference
 """
-function stress(positions::AbstractArray{Point{T,N}}, d=ones(T, length(positions), length(positions)),
-                weights=initialweights(d, T)) where {T,N}
+function stress(positions::AbstractArray{Point{T,N}}, d, weights) where {T,N}
     s = zero(T)
     n = length(positions)
     @assert n == size(d, 1) == size(d, 2) == size(weights, 1) == size(weights, 2)
@@ -196,8 +195,8 @@ end
 Computes L^Z defined in (5) of the Reference
 
 Input: Z: current layout (coordinates)
-       d: Ideal distances (default: all 1)
-       weights: weights (default: d.^-2)
+       d: Ideal distances
+       weights: weights
 """
 function LZ(Z::AbstractVector{Point{N,T}}, d, weights) where {N,T}
     n = length(Z)
@@ -216,4 +215,33 @@ function LZ(Z::AbstractVector{Point{N,T}}, d, weights) where {N,T}
         L[i, i] = D
     end
     return L
+end
+
+"""
+   pairwise_distance(δ)
+
+Calculate the pairwise distances of a the graph from a adjacency matrix
+using the Floyd-Warshall algorithm.
+
+https://en.wikipedia.org/wiki/Floyd%E2%80%93Warshall_algorithm
+"""
+function pairwise_distance(δ, ::Type{T}=Float64) where {T}
+    N = size(δ, 1)
+    d = Matrix{T}(undef, N, N)
+    @inbounds for j in 1:N, i in 1:N
+        if i == j
+            d[i, j] = zero(eltype(d))
+        elseif iszero(δ[i, j])
+            d[i, j] = typemax(eltype(d))
+        else
+            d[i, j] = δ[i, j]
+        end
+    end
+
+    @inbounds for k in 1:N, i in 1:N, j in 1:N
+        if d[i, k] + d[k, j] < d[i, j]
+            d[i, j] = d[i, k] + d[k, j]
+        end
+    end
+    return d
 end

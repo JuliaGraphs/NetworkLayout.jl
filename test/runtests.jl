@@ -112,6 +112,23 @@ jagmesh_adj = jagmesh()
             @test typeof(positions) == Vector{Point3f}
             @test positions == stress(adj_matrix; iterations=10, dim=3, Ptype=Float32)
         end
+
+        @testset "test pairwise_distance" begin
+            using NetworkLayout: make_symmetric!, pairwise_distance
+            δ = [0 1 0 0 1;
+                 1 0 0 1 0;
+                 0 0 0 1 1;
+                 0 1 1 0 0;
+                 1 0 1 0 0]
+            d = pairwise_distance(δ)
+
+            @test d == make_symmetric!([0 1 2 2 1;
+                                        0 0 2 1 2;
+                                        0 0 0 1 1;
+                                        0 0 0 0 2;
+                                        0 0 0 0 0])
+
+        end
     end
 
     @testset "Testing Spring Algorithm" begin
@@ -298,5 +315,33 @@ jagmesh_adj = jagmesh()
         @test_throws ArgumentError spring(M1)
         @test_throws ArgumentError squaregrid(M1)
         @test_throws ArgumentError stress(M1)
+    end
+
+    @testset "make_symmetric" begin
+        using LinearAlgebra: issymmetric
+        using NetworkLayout: make_symmetric!
+
+        M = [1 0; 0 1]
+        make_symmetric!(M)
+        @test issymmetric(M)
+
+        M = [0 1; 0 0]
+        make_symmetric!(M)
+        @test issymmetric(M)
+
+        M = [0 0; 1 0]
+        make_symmetric!(M)
+        @test issymmetric(M)
+
+        M = [0 -1; 1 0]
+        @test_throws ArgumentError make_symmetric!(M)
+
+        M = [1  0  2;
+             6  2  4;
+             2  0  3]
+        make_symmetric!(M)
+        @test M == [1  6  2;
+                    6  2  4;
+                    2  4  3]
     end
 end

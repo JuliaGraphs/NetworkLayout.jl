@@ -108,6 +108,28 @@ function assertsquare(M::AbstractMatrix)
 end
 
 """
+    make_symmetric!(M::AbstractMatrix)
+
+Pairwise check [i,j] and [j,i]. If one is zero, make symmetric.
+If both are different and nonzero throw ArgumentError.
+"""
+function make_symmetric!(A::AbstractMatrix)
+    indsm, indsn = axes(A)
+    for i in first(indsn):last(indsn), j in (i):last(indsn)
+        if A[i,j] == A[j,i]   # allready symmetric
+            continue
+        elseif iszero(A[i,j])
+            A[i,j] = A[j,i]
+        elseif iszero(A[j,i])
+            A[j,i] = A[i,j]
+        else
+            throw(ArgumentError("Matrix can't be symmetrized!"))
+        end
+    end
+    return A
+end
+
+"""
     @addcall
 
 Annotate subtypes of `AbstractLayout` to create a lowercase function call for them.
