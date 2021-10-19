@@ -1,6 +1,6 @@
 using Documenter
 using NetworkLayout
-using LightGraphs
+using Graphs
 using GraphMakie
 using CairoMakie
 

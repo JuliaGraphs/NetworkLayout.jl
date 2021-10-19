@@ -13,7 +13,7 @@ CairoMakie.activate!(type="png") # hide
 set_theme!(resolution=(800, 400)) #hide
 CairoMakie.inline!(true) # hide
 using NetworkLayout
-using GraphMakie, LightGraphs
+using GraphMakie, Graphs
 nothing #hide
 ```
 
@@ -32,7 +32,7 @@ Each of the layouts comes with a lowercase function version:
 positions = layoutalgorithm(adj_matrix; p1="foo", b2=:bar)
 ```
 
-Instead of using the adjacency matrix you can use `AbstractGraph` types from [`LightGraphs.jl`](https://github.com/JuliaGraphs/LightGraphs.jl) directly.
+Instead of using the adjacency matrix you can use `AbstractGraph` types from [`Graphs.jl`](https://github.com/JuliaGraphs/Graphs.jl) directly.
 ```
 g = complete_graph(10)
 positions = layoutalgorithm(g)
