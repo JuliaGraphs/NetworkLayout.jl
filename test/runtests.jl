@@ -1,5 +1,5 @@
 using NetworkLayout
-using LightGraphs
+using Graphs
 using GeometryBasics
 using DelimitedFiles: readdlm
 using SparseArrays: sparse
@@ -295,8 +295,8 @@ jagmesh_adj = jagmesh()
         end
     end
 
-    @testset "test LightGraphs glue code" begin
-        println("Test LightGraphs glue code")
+    @testset "test Graphs glue code" begin
+        println("Test Graphs glue code")
         g = complete_graph(10)
         pos = Spring()(g)
         @test pos isa Vector{Point{2,Float64}}

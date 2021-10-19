@@ -20,7 +20,7 @@ positions` where the positions are represented by the `Point` datatype from
 
 ``` julia
 using NetworkLayout
-using LightGraphs
+using Graphs
 
 adj_matrix = adjacency_matrix(wheel_graph(10))
 
@@ -32,4 +32,4 @@ There is also a "delayed" functor version of each algorithm:
 layout = Spring(; iterations=20)
 pos = layout(adj_matrix)
 ```
-Instead of passing a adjacency matrix on can also pass `LightGraphs.jl` graphs directly.
+Instead of passing a adjacency matrix on can also pass `Graphs.jl` graphs directly.
