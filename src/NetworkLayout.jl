@@ -94,6 +94,14 @@ function __init__()
             LayoutIterator(l, LightGraphs.adjacency_matrix(g))
         end
     end
+    @require Graphs = "86223c79-3864-5bf0-83f7-82e725a168b6" begin
+        function layout(l::AbstractLayout, g::Graphs.AbstractGraph)
+            layout(l, Graphs.adjacency_matrix(g))
+        end
+        function LayoutIterator(l::IterativeLayout, g::Graphs.AbstractGraph)
+            LayoutIterator(l, Graphs.adjacency_matrix(g))
+        end
+    end
 end
 
 """
