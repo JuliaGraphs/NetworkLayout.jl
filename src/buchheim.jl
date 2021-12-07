@@ -281,14 +281,14 @@ function assert_rooted_tree(adj_list::AbstractVector{<:AbstractVector})
             if visited[child] == false
                 visited[child] = true
             else # node was visited before
-                throw(ArgumentError("Pathes not unique ($child has multiple parent nodes)!"))
+                throw(ArgumentError("Buchheim assumption broken, this is not a rooted tree: Node $child has multiple parent nodes!"))
             end
         end
     end
     if visited[1] !== false
-        throw(ArgumentError("Node 1 needs to be the root!"))
+        throw(ArgumentError("Buchheim assumption broken, this is not a rooted tree: Node 1 needs to be the root!"))
     end
     if !all(view(visited, 2:lastindex(visited)))
-        throw(ArgumentError("Some nodes are not part of the tree."))
+        throw(ArgumentError("Buchheim assumption broken, this is not a rooted tree: Some nodes are not part of the tree."))
     end
 end
