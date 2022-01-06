@@ -16,18 +16,18 @@ representation of a network and returns coordinates of the nodes.
 ## Keyword Arguments
 - `dim=2`, `Ptype=Float64`: Determines dimension and output type `Point{dim,Ptype}`.
 - `iterations=:auto`: maximum number of iterations (`:auto` means `400*N^2` where `N` are the number of vertices)
-- `abstols=(√(eps(Float64)))`
+- `abstols=0`
 
    Absolute tolerance for convergence of stress. The iterations terminate if the
    difference between two successive stresses is less than abstol.
 
-- `reltols=(√(eps(Float64)))`
+- `reltols=10e-6`
 
   Relative tolerance for convergence of stress. The iterations terminate if the
   difference between two successive stresses relative to the current stress is
   less than reltol.
 
-- `abstolx=(√(eps(Float64)))`
+- `abstolx=10e-6`
 
   Absolute tolerance for convergence of layout. The iterations terminate if the
   Frobenius norm of two successive layouts is less than abstolx.
