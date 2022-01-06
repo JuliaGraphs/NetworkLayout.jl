@@ -254,12 +254,25 @@ jagmesh_adj = jagmesh()
             @test typeof(locs) == Vector{Point{2,Float64}}
         end
 
-        # This testset is to cover a piece of code
-        # that was not covered anymore after fixing a bug
-        @testset "Test another Binary tree" begin
-            tree = [[5, 6], [6], [7, 8], [8], [], [9], [9], [], []]
-            locs = @time Buchheim()(tree)
-            @test typeof(locs) == Vector{Point{2,Float64}}
+        @testset "test requirements" begin
+            # more than one parent
+            g = SimpleDiGraph(3)
+            add_edge!(g, 1, 2)
+            add_edge!(g, 1, 3)
+            add_edge!(g, 2, 3)
+            @test_throws ArgumentError Buchheim()(g)
+
+            # node 1 not parent
+            g = SimpleDiGraph(3)
+            add_edge!(g, 2, 1)
+            add_edge!(g, 2, 3)
+            @test_throws ArgumentError Buchheim()(g)
+
+            # not all nodes reached
+            g = SimpleDiGraph(4)
+            add_edge!(g, 1, 2)
+            add_edge!(g, 2, 3)
+            @test_throws ArgumentError Buchheim()(g)
         end
     end
 
