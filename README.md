@@ -8,7 +8,7 @@ Layout algorithms for graphs and trees in pure Julia.
 
 ## Installation
 ``` julia
-pkg> add NetworkLayout.jl
+pkg> add NetworkLayout
 ```
 ## Algorithms
 The available algorithms and their parameters can be found in the
