@@ -179,6 +179,19 @@ jagmesh_adj = jagmesh()
         end
     end
 
+    @testset "Testing Springfy Algorithm" begin
+        println("Springfy wheel_graph")
+
+        @testset "Testing wheel_graph" begin
+            g = wheel_graph(10)
+            adj_matrix = adjacency_matrix(g)
+            positions = @time Springify(; iterations=100)(adj_matrix)
+            @test typeof(positions) == Vector{Point2f}
+            # @test positions == springify(adj_matrix; iterations=100) # it starts from random coords... so it will fail (I guess this is why you introduced seed, but I don't want to bother it with it now)
+        end
+
+    end
+
     @testset "Testing Spectral Algorithm" begin
         println("Spectral wheel_graph")
         @testset "Testing wheel_graph" begin

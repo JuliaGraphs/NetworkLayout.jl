@@ -177,6 +177,7 @@ end
 include("sfdp.jl")
 include("buchheim.jl")
 include("spring.jl")
+include("springify.jl")
 include("stress.jl")
 include("spectral.jl")
 include("shell.jl")
