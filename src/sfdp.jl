@@ -81,7 +81,6 @@ function Base.iterate(iter::LayoutIterator{<:SFDP}, state)
     energy = zero(energy0)
     Ftype = eltype(locs)
     N = size(adj_matrix, 1)
-    algo.fixed
     M = algo.fixed ? length(algo.initialpos) : 0
     for i in 1:N
         force = zero(Ftype)
