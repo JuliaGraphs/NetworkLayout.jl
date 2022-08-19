@@ -62,6 +62,8 @@ jagmesh_adj = jagmesh()
             positions = @time SFDP(; dim=3, Ptype=Float32, tol=0.1, K=1)(adj_matrix)
             @test typeof(positions) == Vector{Point3f}
             @test positions == sfdp(adj_matrix; dim=3, Ptype=Float32, tol=0.1, K=1)
+            ip = [Point2f(3.0, 1.0)]
+            @test ip[1] == sfdp(adj_matrix; dim=3, Ptype=Float32, tol=0.1, K=1, initialpos = ip, fixed = true)[1]
         end
     end
 

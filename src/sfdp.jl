@@ -24,6 +24,7 @@ the nodes.
   positions will be truncated or filled up with random values between [-1,1] in every coordinate.
 
 - `seed=1`: Seed for random initial positions.
+- `fixed = false` : Anchors initial positions.
 """
 @addcall struct SFDP{Dim,Ptype,T<:AbstractFloat} <: IterativeLayout{Dim,Ptype}
     tol::T
@@ -32,11 +33,12 @@ the nodes.
     iterations::Int
     initialpos::Vector{Point{Dim,Ptype}}
     seed::UInt
+    fixed::Bool
 end
 
 # TODO: check SFDP default parameters
 function SFDP(; dim=2, Ptype=Float64, tol=1.0, C=0.2, K=1.0, iterations=100, initialpos=Point{dim,Ptype}[],
-              seed=1)
+              seed=1, fixed = false)
     if !isempty(initialpos)
         initialpos = Point.(initialpos)
         Ptype = eltype(eltype(initialpos))
@@ -44,7 +46,7 @@ function SFDP(; dim=2, Ptype=Float64, tol=1.0, C=0.2, K=1.0, iterations=100, ini
         Ptype == Any && error("Please provide list of Point{N,T} with same T")
         dim = length(eltype(initialpos))
     end
-    return SFDP{dim,Ptype,typeof(tol)}(tol, C, K, iterations, initialpos, seed)
+    return SFDP{dim,Ptype,typeof(tol)}(tol, C, K, iterations, initialpos, seed, fixed)
 end
 
 function Base.iterate(iter::LayoutIterator{SFDP{Dim,Ptype,T}}) where {Dim,Ptype,T}
@@ -79,6 +81,8 @@ function Base.iterate(iter::LayoutIterator{<:SFDP}, state)
     energy = zero(energy0)
     Ftype = eltype(locs)
     N = size(adj_matrix, 1)
+    algo.fixed
+    M = algo.fixed ? length(algo.initialpos) : 0
     for i in 1:N
         force = zero(Ftype)
         for j in 1:N
@@ -93,7 +97,9 @@ function Base.iterate(iter::LayoutIterator{<:SFDP}, state)
                                ((locs[j] .- locs[i]) / norm(locs[j] .- locs[i])))
             end
         end
-        locs[i] = locs[i] .+ step .* (force ./ norm(force))
+        if i > M
+            locs[i] = locs[i] .+ step .* (force ./ norm(force))
+        end
         energy = energy + norm(force)^2
     end
     step, progress = update_step(step, energy, energy0, progress)
