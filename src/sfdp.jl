@@ -55,13 +55,23 @@ function Base.iterate(iter::LayoutIterator{SFDP{Dim,Ptype,T}}) where {Dim,Ptype,
     M = length(algo.initialpos)
     rng = MersenneTwister(algo.seed)
     startpos = Vector{Point{Dim,Ptype}}(undef, N)
+    startposbounds = (min = zero(Point{Dim, Ptype}), max = zero((Point{Dim, Ptype})) .+ one(Ptype))
     # take the first
     for i in 1:min(N, M)
         startpos[i] = algo.initialpos[i]
     end
+
+    # create bounds for random initial positions
+    if M > 0
+        startposbounds = (
+            min = Point{Dim, Ptype}([minimum((p[d] for p in startpos[1:min(N, M)])) for d in 1:Dim]),
+            max = Point{Dim, Ptype}([maximum((p[d] for p in startpos[1:min(N, M)])) for d in 1:Dim])
+        )
+    end
+
     # fill the rest with random points
     for i in (M + 1):N
-        startpos[i] = 2 .* rand(rng, Point{Dim,Ptype}) .- 1
+        startpos[i] = (startposbounds.max .- startposbounds.min) .* (2 .* rand(rng, Point{Dim,Ptype}) .- 1) .+ startposbounds.min
     end
     # iteratorstate: (#iter, energy, step, progress, old pos, stopflag)
     return startpos, (1, typemax(T), one(T), 0, startpos, false)
