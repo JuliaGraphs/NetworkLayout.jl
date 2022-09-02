@@ -6,7 +6,7 @@ using SparseArrays: sparse
 using Test
 
 function jagmesh()
-    jagmesh_path = joinpath(dirname(@__FILE__), "jagmesh1.mtx")
+    jagmesh_path = joinpath(pkgdir(NetworkLayout), "test", "jagmesh1.mtx")
     array = round.(Int, open(readdlm, jagmesh_path))
     row = array[:, 1]
     col = array[:, 2]
@@ -29,6 +29,11 @@ jagmesh_adj = jagmesh()
             ip = [Point2f(1, 2)]
             algo = SFDP(; initialpos=ip)
             @test algo isa SFDP{2,Float32}
+            ip = Dict(1=>Point(1.0,3.0))
+            algo = SFDP(; initialpos = ip)
+            @test algo isa SFDP{2, Float64}
+            p = [Point((true, true))]
+            algo = SFDP(; initialpos = ip, pin = p)
         end
 
         @testset "iterator size" begin
@@ -63,7 +68,7 @@ jagmesh_adj = jagmesh()
             @test typeof(positions) == Vector{Point3f}
             @test positions == sfdp(adj_matrix; dim=3, Ptype=Float32, tol=0.1, K=1)
             ip = [Point2f(3.0, 1.0)]
-            @test ip[1] == sfdp(adj_matrix; dim=3, Ptype=Float32, tol=0.1, K=1, initialpos = ip, fixed = true)[1]
+            @test ip[1] == sfdp(adj_matrix; dim=3, Ptype=Float32, tol=0.1, K=1, initialpos = ip, pin = [true])[1]
         end
     end
 

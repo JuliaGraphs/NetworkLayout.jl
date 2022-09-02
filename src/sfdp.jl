@@ -24,29 +24,78 @@ the nodes.
   positions will be truncated or filled up with random values between [-1,1] in every coordinate.
 
 - `seed=1`: Seed for random initial positions.
-- `fixed = false` : Anchors initial positions.
+- `pin::Union{Nothing, Vector{Point{Dim,Bool}}}=nothing` : Anchors positions of nodes to initial position
 """
 @addcall struct SFDP{Dim,Ptype,T<:AbstractFloat} <: IterativeLayout{Dim,Ptype}
     tol::T
     C::T
     K::T
     iterations::Int
-    initialpos::Vector{Point{Dim,Ptype}}
+    initialpos::Dict{Int, Point{Dim,Ptype}}
     seed::UInt
-    fixed::Bool
+    pin::Vector{Point{Dim,Bool}}
+    function SFDP(tol, C, K, iterations, initialpos, seed, pin)
+        for (ix, p) in enumerate(pin)
+            for (id, c) in enumerate(p)
+                c && !haskey(initialpos, ix) && error("Please provide coordinate for every pinned position")
+            end
+        end
+        dim = get_pt_dim(initialpos)
+        ptype = get_pt_ptype(initialpos)
+        new{dim, ptype, typeof(tol)}(tol, C, K, iterations, initialpos, seed, pin)
+    end
 end
 
 # TODO: check SFDP default parameters
-function SFDP(; dim=2, Ptype=Float64, tol=1.0, C=0.2, K=1.0, iterations=100, initialpos=Point{dim,Ptype}[],
-              seed=1, fixed = false)
-    if !isempty(initialpos)
-        initialpos = Point.(initialpos)
-        Ptype = eltype(eltype(initialpos))
-        # TODO fix initial pos if list has points of multiple types
-        Ptype == Any && error("Please provide list of Point{N,T} with same T")
-        dim = length(eltype(initialpos))
+function SFDP(; dim=2, Ptype=Float64, tol=1.0, C=0.2, K=1.0, iterations=100, initialpos=Dict{Int, Point{dim,Ptype}}(),
+              seed::UInt=UInt(1), pin = Vector{Bool}())
+            @show initialpos
+    return SFDP(tol, C, K, iterations, initialpos, seed, pin)
+end
+
+function SFDP(tol::T, C::T, K::T, iterations::Int, initialpos::Vector, seed::UInt, pin) where T<:AbstractFloat
+    @info "sfdp with ip vec"
+    dim = get_pt_dim(initialpos)
+    initialpos = Dict(zip(1:length(initialpos), Point.(initialpos)))
+    Ptype = get_pt_ptype(initialpos)
+    # TODO fix initial pos if list has points of multiple types
+    return SFDP(tol, C, K, iterations, initialpos, seed, pin)
+end
+
+function SFDP(tol::T, C::T, K::T, iterations::Int, initialpos::Dict{Int, <:Point}, seed::UInt, pin::Dict{Int, <:Point}) where {T<:AbstractFloat}
+    @info "sfdp with ip dict and pin dict"
+    fixed = falses(maximum(keys(pin)))
+    for (i, p) in pin
+        haskey(initialpos, i) && @warn "overwriting initial position of node $i with pin position"
+        initialpos[i] = p
+        fixed[i] = true
     end
-    return SFDP{dim,Ptype,typeof(tol)}(tol, C, K, iterations, initialpos, seed, fixed)
+    dim = get_pt_dim(initialpos)
+    Ptype = get_pt_ptype(initialpos)
+    return SFDP(tol, C, K, iterations, initialpos, seed, Point{dim,Bool}.(fixed))
+end
+
+function SFDP(tol::T, C::T, K::T, iterations::Int, initialpos::Dict{Int, <:Point}, seed::UInt, pin::Vector{Bool}) where T<:AbstractFloat
+    @info "sfdp with ip dict and pin vec"
+    dim = get_pt_dim(initialpos)
+    Ptype = get_pt_ptype(initialpos)
+    return SFDP(tol, C, K, iterations, initialpos, seed, Point{dim, Bool}.(pin))
+end
+
+function get_pt_ptype(ip::Dict{Int, <:Point})
+    ptype = eltype(eltype(values(ip)))
+    ptype == Any && error("Please provide list of Point{N,T} with same T")
+    return ptype
+end
+
+function get_pt_dim(ip::Vector)
+    dims = length.(ip)
+    length(unique(dims)) != 1 && error("Please provide list of Point{N,T} with same N")
+    return first(dims)
+end
+
+function get_pt_dim(ip::Dict{Int, <:Point}) 
+    return typeof(ip).parameters[2].parameters[1] #based on type of point
 end
 
 function Base.iterate(iter::LayoutIterator{SFDP{Dim,Ptype,T}}) where {Dim,Ptype,T}
@@ -55,22 +104,23 @@ function Base.iterate(iter::LayoutIterator{SFDP{Dim,Ptype,T}}) where {Dim,Ptype,
     M = length(algo.initialpos)
     rng = MersenneTwister(algo.seed)
     startpos = Vector{Point{Dim,Ptype}}(undef, N)
-    startposbounds = (min = zero(Point{Dim, Ptype}), max = zero((Point{Dim, Ptype})) .+ one(Ptype))
     # take the first
-    for i in 1:min(N, M)
-        startpos[i] = algo.initialpos[i]
+    for (i, p) in algo.initialpos
+        startpos[i] = p
     end
 
     # create bounds for random initial positions
-    if M > 0
+    if isempty(algo.initialpos)
+        startposbounds = (min = zero(Point{Dim, Ptype}), max = zero((Point{Dim, Ptype})) .+ one(Ptype))
+    else
         startposbounds = (
-            min = Point{Dim, Ptype}([minimum((p[d] for p in startpos[1:min(N, M)])) for d in 1:Dim]),
-            max = Point{Dim, Ptype}([maximum((p[d] for p in startpos[1:min(N, M)])) for d in 1:Dim])
+            min = Point{Dim, Ptype}([minimum((p[d] for p in values(algo.initialpos))) for d in 1:Dim]),
+            max = Point{Dim, Ptype}([maximum((p[d] for p in values(algo.initialpos))) for d in 1:Dim])
         )
     end
 
     # fill the rest with random points
-    for i in (M + 1):N
+    for i in setdiff(1:N, keys(algo.initialpos))
         startpos[i] = (startposbounds.max .- startposbounds.min) .* (2 .* rand(rng, Point{Dim,Ptype}) .- 1) .+ startposbounds.min
     end
     # iteratorstate: (#iter, energy, step, progress, old pos, stopflag)
@@ -91,7 +141,7 @@ function Base.iterate(iter::LayoutIterator{<:SFDP}, state)
     energy = zero(energy0)
     Ftype = eltype(locs)
     N = size(adj_matrix, 1)
-    M = algo.fixed ? length(algo.initialpos) : 0
+    pin = N > length(algo.pin) ? vcat(algo.pin, falses(N-length(algo.pin))) : algo.pin
     for i in 1:N
         force = zero(Ftype)
         for j in 1:N
@@ -106,7 +156,7 @@ function Base.iterate(iter::LayoutIterator{<:SFDP}, state)
                                ((locs[j] .- locs[i]) / norm(locs[j] .- locs[i])))
             end
         end
-        if i > M
+        if !pin[i]
             locs[i] = locs[i] .+ step .* (force ./ norm(force))
         end
         energy = energy + norm(force)^2
