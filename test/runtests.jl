@@ -32,7 +32,7 @@ jagmesh_adj = jagmesh()
             ip = Dict(1=>Point(1.0,3.0))
             algo = SFDP(; initialpos = ip)
             @test algo isa SFDP{2, Float64}
-            p = [Point((true, true))]
+            p = [true, true]
             algo = SFDP(; initialpos = ip, pin = p)
         end
 
@@ -51,9 +51,9 @@ jagmesh_adj = jagmesh()
 
         @testset "Testing Jagmesh1 graph" begin
             println("SFDP Jagmesh1")
-            positions = @time SFDP(; dim=2, Ptype=Float32, tol=0.9, K=1, iterations=10)(jagmesh_adj)
+            positions = @time SFDP(; dim=2, Ptype=Float32, tol=0.9, K=1.0, iterations=10)(jagmesh_adj)
             @test typeof(positions) == Vector{Point2f}
-            positions = @time SFDP(; dim=3, Ptype=Float32, tol=0.9, K=1, iterations=10)(jagmesh_adj)
+            positions = @time SFDP(; dim=3, Ptype=Float32, tol=0.9, K=1.0, iterations=10)(jagmesh_adj)
             @test typeof(positions) == Vector{Point3f}
         end
 
@@ -61,14 +61,14 @@ jagmesh_adj = jagmesh()
             println("SFDP Wheelgraph")
             g = wheel_graph(10)
             adj_matrix = adjacency_matrix(g)
-            positions = @time SFDP(; dim=2, Ptype=Float32, tol=0.1, K=1)(adj_matrix)
+            positions = @time SFDP(; dim=2, Ptype=Float32, tol=0.1, K=1.0)(adj_matrix)
             @test typeof(positions) == Vector{Point2f}
-            @test positions == sfdp(adj_matrix; dim=2, Ptype=Float32, tol=0.1, K=1)
-            positions = @time SFDP(; dim=3, Ptype=Float32, tol=0.1, K=1)(adj_matrix)
+            @test positions == sfdp(adj_matrix; dim=2, Ptype=Float32, tol=0.1, K=1.0)
+            positions = @time SFDP(; dim=3, Ptype=Float32, tol=0.1, K=1.0)(adj_matrix)
             @test typeof(positions) == Vector{Point3f}
-            @test positions == sfdp(adj_matrix; dim=3, Ptype=Float32, tol=0.1, K=1)
+            @test positions == sfdp(adj_matrix; dim=3, Ptype=Float32, tol=0.1, K=1.0)
             ip = [Point2f(3.0, 1.0)]
-            @test ip[1] == sfdp(adj_matrix; dim=3, Ptype=Float32, tol=0.1, K=1, initialpos = ip, pin = [true])[1]
+            @test ip[1] == sfdp(adj_matrix; dim=3, Ptype=Float32, tol=0.1, K=1.0, initialpos = ip, pin = [true])[1]
         end
     end
 

@@ -24,7 +24,7 @@ the nodes.
   positions will be truncated or filled up with random values between [-1,1] in every coordinate.
 
 - `seed=1`: Seed for random initial positions.
-- `pin::Union{Nothing, Vector{Point{Dim,Bool}}}=nothing` : Anchors positions of nodes to initial position
+- `pin=Dict{Int,Bool}()` : Anchors positions of nodes to initial position
 """
 @addcall struct SFDP{Dim,Ptype,T<:AbstractFloat} <: IterativeLayout{Dim,Ptype}
     tol::T
@@ -33,11 +33,11 @@ the nodes.
     iterations::Int
     initialpos::Dict{Int, Point{Dim,Ptype}}
     seed::UInt
-    pin::Vector{Point{Dim,Bool}}
-    function SFDP(tol, C, K, iterations, initialpos, seed, pin)
-        for (ix, p) in enumerate(pin)
-            for (id, c) in enumerate(p)
-                c && !haskey(initialpos, ix) && error("Please provide coordinate for every pinned position")
+    pin::Dict{Int, Bool}
+    function SFDP(tol::T, C::T, K::T, iterations::Int, initialpos::Dict, seed::UInt, pin::Dict) where T<:AbstractFloat
+        for (ix, p) in pin
+            if !haskey(initialpos, ix) && p
+                @warn "No coordinate provided for pinned position $ix"
             end
         end
         dim = get_pt_dim(initialpos)
@@ -48,38 +48,20 @@ end
 
 # TODO: check SFDP default parameters
 function SFDP(; dim=2, Ptype=Float64, tol=1.0, C=0.2, K=1.0, iterations=100, initialpos=Dict{Int, Point{dim,Ptype}}(),
-              seed::UInt=UInt(1), pin = Vector{Bool}())
-            @show initialpos
+              seed::UInt=UInt(1), pin = Dict{Int, Bool}())
     return SFDP(tol, C, K, iterations, initialpos, seed, pin)
 end
 
 function SFDP(tol::T, C::T, K::T, iterations::Int, initialpos::Vector, seed::UInt, pin) where T<:AbstractFloat
-    @info "sfdp with ip vec"
-    dim = get_pt_dim(initialpos)
     initialpos = Dict(zip(1:length(initialpos), Point.(initialpos)))
-    Ptype = get_pt_ptype(initialpos)
     # TODO fix initial pos if list has points of multiple types
     return SFDP(tol, C, K, iterations, initialpos, seed, pin)
 end
 
-function SFDP(tol::T, C::T, K::T, iterations::Int, initialpos::Dict{Int, <:Point}, seed::UInt, pin::Dict{Int, <:Point}) where {T<:AbstractFloat}
-    @info "sfdp with ip dict and pin dict"
-    fixed = falses(maximum(keys(pin)))
-    for (i, p) in pin
-        haskey(initialpos, i) && @warn "overwriting initial position of node $i with pin position"
-        initialpos[i] = p
-        fixed[i] = true
-    end
-    dim = get_pt_dim(initialpos)
-    Ptype = get_pt_ptype(initialpos)
-    return SFDP(tol, C, K, iterations, initialpos, seed, Point{dim,Bool}.(fixed))
-end
-
 function SFDP(tol::T, C::T, K::T, iterations::Int, initialpos::Dict{Int, <:Point}, seed::UInt, pin::Vector{Bool}) where T<:AbstractFloat
-    @info "sfdp with ip dict and pin vec"
     dim = get_pt_dim(initialpos)
-    Ptype = get_pt_ptype(initialpos)
-    return SFDP(tol, C, K, iterations, initialpos, seed, Point{dim, Bool}.(pin))
+    fixed = Dict(zip(1:length(pin), pin))
+    return SFDP(tol, C, K, iterations, initialpos, seed, fixed)
 end
 
 function get_pt_ptype(ip::Dict{Int, <:Point})
@@ -141,7 +123,6 @@ function Base.iterate(iter::LayoutIterator{<:SFDP}, state)
     energy = zero(energy0)
     Ftype = eltype(locs)
     N = size(adj_matrix, 1)
-    pin = N > length(algo.pin) ? vcat(algo.pin, falses(N-length(algo.pin))) : algo.pin
     for i in 1:N
         force = zero(Ftype)
         for j in 1:N
@@ -156,7 +137,7 @@ function Base.iterate(iter::LayoutIterator{<:SFDP}, state)
                                ((locs[j] .- locs[i]) / norm(locs[j] .- locs[i])))
             end
         end
-        if !pin[i]
+        if !get(algo.pin, i, false)
             locs[i] = locs[i] .+ step .* (force ./ norm(force))
         end
         energy = energy + norm(force)^2
