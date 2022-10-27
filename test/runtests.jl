@@ -390,7 +390,7 @@ jagmesh_adj = jagmesh()
     end
 
     @testset "test pin" begin
-        for algo in [sfdp]
+        for algo in [sfdp, spring]
             g = complete_graph(10)
             ep = algo(g; pin=[(0,0), (0,0)])
             @test ep[1] == [0,0]
