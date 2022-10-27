@@ -20,8 +20,15 @@ the nodes.
 - `iterations=100`: maximum number of iterations
 - `initialpos=Point{dim,Ptype}[]`
 
-  Provide list of initial positions. If length does not match Network size the initial
-  positions will be truncated or filled up with random values between [-1,1] in every coordinate.
+  Provide `Vector` or `Dict` of initial positions. All positions will be initialized
+  using random coordinates between [-1,1]. Random positions will be overwritten using
+  the key-val-pairs provided by this argument.
+
+- `pin=[]`: Pin node positions (won't be updated). Can be given as `Vector` or `Dict`
+   of node index -> value pairings. Values can be either
+    - `(12, 4.0)` : overwrite initial position and pin
+    - `true/false` : pin this position
+    - `(true, false, false)` : only pin certain coordinates
 
 - `seed=1`: Seed for random initial positions.
 """
@@ -30,44 +37,45 @@ the nodes.
     C::T
     K::T
     iterations::Int
-    initialpos::Vector{Point{Dim,Ptype}}
+    initialpos::Dict{Int,Point{Dim,Ptype}}
+    pin::Dict{Int,SVector{Dim,Bool}}
     seed::UInt
 end
 
 # TODO: check SFDP default parameters
-function SFDP(; dim=2, Ptype=Float64, tol=1.0, C=0.2, K=1.0, iterations=100, initialpos=Point{dim,Ptype}[],
+function SFDP(; dim=2, Ptype=Float64,
+              tol=1.0, C=0.2, K=1.0,
+              iterations=100,
+              initialpos=[], pin=[],
               seed=1)
     if !isempty(initialpos)
-        initialpos = Point.(initialpos)
-        Ptype = eltype(eltype(initialpos))
-        # TODO fix initial pos if list has points of multiple types
-        Ptype == Any && error("Please provide list of Point{N,T} with same T")
-        dim = length(eltype(initialpos))
+        dim, Ptype = infer_pointtype(initialpos)
+        Ptype = promote_type(Float32, Ptype) # make sure to get at least f32 if given as int
     end
-    return SFDP{dim,Ptype,typeof(tol)}(tol, C, K, iterations, initialpos, seed)
+    _initialpos, _pin = _sanitize_initialpos_pin(dim, Ptype, initialpos, pin)
+
+    return SFDP{dim,Ptype,typeof(tol)}(tol, C, K, iterations, _initialpos, _pin, seed)
 end
 
 function Base.iterate(iter::LayoutIterator{SFDP{Dim,Ptype,T}}) where {Dim,Ptype,T}
     algo, adj_matrix = iter.algorithm, iter.adj_matrix
     N = size(adj_matrix, 1)
-    M = length(algo.initialpos)
     rng = MersenneTwister(algo.seed)
-    startpos = Vector{Point{Dim,Ptype}}(undef, N)
-    # take the first
-    for i in 1:min(N, M)
-        startpos[i] = algo.initialpos[i]
+    startpos = [2 .* rand(rng, Point{Dim,Ptype}) .- 1 for _ in 1:N]
+
+    for (k, v) in algo.initialpos
+        startpos[k] = v
     end
-    # fill the rest with random points
-    for i in (M + 1):N
-        startpos[i] = 2 .* rand(rng, Point{Dim,Ptype}) .- 1
-    end
-    # iteratorstate: (#iter, energy, step, progress, old pos, stopflag)
-    return startpos, (1, typemax(T), one(T), 0, startpos, false)
+
+    pin = [get(algo.pin, i, SVector{Dim,Bool}(false for _ in 1:Dim)) for i in 1:N]
+
+    # iteratorstate: (#iter, energy, step, progress, old pos, pin, stopflag)
+    return startpos, (1, typemax(T), one(T), 0, startpos, pin, false)
 end
 
 function Base.iterate(iter::LayoutIterator{<:SFDP}, state)
     algo, adj_matrix = iter.algorithm, iter.adj_matrix
-    iter, energy0, step, progress, locs0, stopflag = state
+    iter, energy0, step, progress, locs0, pin, stopflag = state
     K, C, tol = algo.K, algo.C, algo.tol
 
     # stop if stopflag (tol reached) or nr of iterations reached
@@ -93,7 +101,8 @@ function Base.iterate(iter::LayoutIterator{<:SFDP}, state)
                                ((locs[j] .- locs[i]) / norm(locs[j] .- locs[i])))
             end
         end
-        locs[i] = locs[i] .+ step .* (force ./ norm(force))
+        mask = (!).(pin[i]) # where pin=true mask will multiply with 0
+        locs[i] = locs[i] .+ (step .* (force ./ norm(force))) .* mask
         energy = energy + norm(force)^2
     end
     step, progress = update_step(step, energy, energy0, progress)
@@ -103,7 +112,7 @@ function Base.iterate(iter::LayoutIterator{<:SFDP}, state)
         stopflag = true
     end
 
-    return locs, (iter + 1, energy, step, progress, locs, stopflag)
+    return locs, (iter + 1, energy, step, progress, locs, pin, stopflag)
 end
 
 # Calculate Attractive force

@@ -4,6 +4,7 @@ using GeometryBasics
 using Requires
 using LinearAlgebra: norm
 using Random
+using StaticArrays
 
 export LayoutIterator
 
@@ -135,6 +136,66 @@ function make_symmetric!(A::AbstractMatrix)
         end
     end
     return A
+end
+
+"""
+Initialpos and pin can be given as diffent types (dicts, vectors, ...)
+Sanitize and transform them into
+
+    _initialpos :: Dict{Int,Point{dim,Ptype}}()
+    _pin        :: Dict{Int,SVector{dim,Bool}}()
+"""
+function _sanitize_initialpos_pin(dim, Ptype, initialpos, pin)
+    if !isempty(initialpos)
+        _initialpos = Dict{Int,Point{dim,Ptype}}(k => Point{dim,Ptype}(v) for (k, v) in pairs(initialpos))
+    else
+        _initialpos = Dict{Int,Point{dim,Ptype}}()
+    end
+
+    _pin = Dict{Int,SVector{dim,Bool}}()
+    for (k, v) in pairs(pin)
+        if v == nothing
+            continue
+        elseif v isa Bool
+            _pin[k] = SVector{dim,Bool}(v for i in 1:dim)
+        else # some container
+            if eltype(v) <: Bool
+                _pin[k] = v
+            else
+                # seems to be an initial position
+                _initialpos[k] = v
+                _pin[k] = SVector{dim,Bool}([true for i in 1:dim])
+            end
+        end
+    end
+    return _initialpos, _pin
+end
+
+"""
+From an point or a colletion of point like objects try to
+infer the PType and the dimension.
+
+i.e.
+    infer_pointtype([(1,2), (2.3, 4)]) == (2, Float64)
+"""
+infer_pointtype(::AbstractPoint{dim,t}) where {dim,t} = dim, t
+infer_pointtype(::NTuple{dim,t}) where {dim,t} = dim, t
+infer_pointtype(t::Tuple) = length(t), promote_type(typeof(t).parameters...)
+function infer_pointtype(v)
+    v = values(v) # needed for broadcast ofer dict
+    isempty(v) && throw(ArgumentError("Can not infer pointtype of empty container!"))
+    elt = isconcretetype(eltype(v)) ? eltype(v) : promote_type(typeof.(v)...)
+
+    if elt <: Number
+        return (length(v), elt)
+    else
+        ty = infer_pointtype.(v)
+        dims = getindex.(ty, 1)
+        if !all(isequal(first(dims)), dims)
+            throw(ArgumentError("Got container with different point dimesions!"))
+        end
+        (dims[1], promote_type(getindex.(ty, 2)...))
+    end
 end
 
 """
