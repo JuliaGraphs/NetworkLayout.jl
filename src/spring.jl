@@ -104,7 +104,15 @@ function Base.iterate(iter::LayoutIterator{<:Spring}, state)
             #  / |          cos θ = d_x/d = fx/F
             # /---          -> fx = F*d_x/d
             # dx fx
-            force_vec += Ftype(F_d .* (locs[j] .- locs[i]))
+            if !iszero(d)
+                force_vec += Ftype(F_d .* (locs[j] .- locs[i]))
+            else
+                # if two points are at the exact same location
+                # use random force in any direction
+                rng = MersenneTwister(algo.seed + i)
+                force_vec += randn(rng, Ftype)
+            end
+
         end
         force[i] = force_vec
     end

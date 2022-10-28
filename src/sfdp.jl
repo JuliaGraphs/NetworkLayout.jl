@@ -101,6 +101,12 @@ function Base.iterate(iter::LayoutIterator{<:SFDP}, state)
                                ((locs[j] .- locs[i]) / norm(locs[j] .- locs[i])))
             end
         end
+        if any(isnan, force)
+            # if two points are at the exact same location
+            # use random force in any direction
+            rng = MersenneTwister(algo.seed + i)
+            force = randn(rng, Ftype)
+        end
         mask = (!).(pin[i]) # where pin=true mask will multiply with 0
         locs[i] = locs[i] .+ (step .* (force ./ norm(force))) .* mask
         energy = energy + norm(force)^2
