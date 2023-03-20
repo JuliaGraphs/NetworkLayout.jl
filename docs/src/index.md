@@ -208,7 +208,7 @@ stressl = Stress(;initialpos, pin, reltols=0.0, abstolx=0.0, iterations=100)
 f = Figure(resolution=(1200,500))
 ax1 = f[1,1] = Axis(f; title="Spring")
 ax2 = f[1,2] = Axis(f; title="SFDP")
-ax3 = f[1,3] = Axis(f; title="SFDP")
+ax3 = f[1,3] = Axis(f; title="Stress")
 
 for ax in [ax1, ax2, ax3]
     xlims!(ax,-2,2); ylims!(ax,-1.4,1.4); vlines!(ax, 1; color=:red); hidespines!(ax); hidedecorations!(ax)
