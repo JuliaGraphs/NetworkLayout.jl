@@ -3,6 +3,7 @@ using Graphs
 using GeometryBasics
 using DelimitedFiles: readdlm
 using SparseArrays: sparse
+using StaticArrays
 using Test
 
 function jagmesh()
@@ -356,5 +357,49 @@ jagmesh_adj = jagmesh()
         @test M == [1  6  2;
                     6  2  4;
                     2  4  3]
+    end
+
+    @testset "infer ptype" begin
+        using NetworkLayout: infer_pointtype
+        @test infer_pointtype(Point2f(1,2)) == (2, Float32)
+        @test infer_pointtype(Point2(1.0,2)) == (2, Float64)
+        @test infer_pointtype(Point(1,2,4)) == (3, Int64)
+        @test_throws ArgumentError infer_pointtype([(1,2), (2,3.2,1)])
+        @test infer_pointtype([(1,2), (2,3.2)]) == (2, Float64)
+
+        dany = Dict(1=>Point2(1,1), 4=>[1.0,2.0], 7=>(1.0, 4.0))
+        @test infer_pointtype(dany) == (2, Float64)
+
+        dany[2] = (1,2,3)
+        @test_throws ArgumentError infer_pointtype(dany)
+    end
+
+    @testset "Sanitize initialpos pin"  begin
+        using NetworkLayout: _sanitize_initialpos_pin
+        pos = [(0,0),(1,1),(2,2)]
+        pin = []
+        _pos, _pin = _sanitize_initialpos_pin(2, Float64, pos, pin)
+        @test _pos == Dict(pairs(Point2f.(pos)))
+        @test _pin == Dict{Int, SVector{2, Bool}}()
+
+        pos = [(0,0),(1,1),(2,2)]
+        pin = Dict(1=>(true,false), 3=>true, 2=>(3.0, 3.0))
+        _pos, _pin = _sanitize_initialpos_pin(2, Float64, pos, pin)
+        @test _pos == Dict(1=>Point2f(0,0), 2=>Point2f(3.0,3.0), 3=>Point2f(2.0,2.0))
+        @test _pin == Dict(1=>SVector(true,false), 2=>SVector(true,true), 3=>SVector(true,true))
+    end
+
+    @testset "test pin" begin
+        for algo in [sfdp, spring, stress]
+            g = complete_graph(10)
+            ep = algo(g; pin=[(0,0), (0,0)])
+            @test ep[1] == [0,0]
+            @test ep[2] == [0,0]
+
+            ep = algo(g; initialpos=Dict(4=>(0,0,0), 5=>(1,2,3)), pin=Dict(4=>true, 5=>(true, false, true)))
+            @test ep[4] == [0,0,0]
+            @test ep[5][[1,3]] == [1,3]
+            @test ep[5][2] != [2]
+        end
     end
 end

@@ -39,8 +39,16 @@ representation of a network and returns coordinates of the nodes.
 
 - `initialpos=Point{dim,Ptype}[]`
 
-  Provide list of initial positions. If length does not match Network size the initial
-  positions will be truncated or filled up with random normal distributed values in every coordinate.
+  Provide `Vector` or `Dict` of initial positions. All positions will be
+  initialized using random coordinates from normal distribution. Random
+  positions will be overwritten using the key-val-pairs provided by this
+  argument.
+
+- `pin=[]`: Pin node positions (won't be updated). Can be given as `Vector` or `Dict`
+   of node index -> value pairings. Values can be either
+    - `(12, 4.0)` : overwrite initial position and pin
+    - `true/false` : pin this position
+    - `(true, false, false)` : only pin certain coordinates
 
 - `seed=1`: Seed for random initial positions.
 
@@ -68,7 +76,8 @@ The main equation to solve is (8) of:
     reltols::FT
     abstolx::FT
     weights::M
-    initialpos::Vector{Point{Dim,Ptype}}
+    initialpos::Dict{Int,Point{Dim,Ptype}}
+    pin::Dict{Int,SVector{Dim,Bool}}
     seed::UInt
 end
 
@@ -79,17 +88,17 @@ function Stress(; dim=2,
                 reltols=10e-6,
                 abstolx=10e-6,
                 weights=Array{Float64}(undef, 0, 0),
-                initialpos=Point{dim,Ptype}[],
+                initialpos=[], pin=[],
                 seed=1)
     if !isempty(initialpos)
-        initialpos = Point.(initialpos)
-        Ptype = eltype(eltype(initialpos))
-        # TODO fix initial pos if list has points of multiple types
-        Ptype == Any && error("Please provide list of Point{N,T} with same T")
-        dim = length(eltype(initialpos))
+        dim, Ptype = infer_pointtype(initialpos)
+        Ptype = promote_type(Float32, Ptype) # make sure to get at least f32 if given as int
     end
+
+    _initialpos, _pin = _sanitize_initialpos_pin(dim, Ptype, initialpos, pin)
+
     IT, FT, WT = typeof(iterations), typeof(abstols), typeof(weights)
-    Stress{dim,Ptype,IT,FT,WT}(iterations, abstols, reltols, abstolx, weights, initialpos, seed)
+    Stress{dim,Ptype,IT,FT,WT}(iterations, abstols, reltols, abstolx, weights, _initialpos, _pin, seed)
 end
 
 function Base.iterate(iter::LayoutIterator{<:Stress{Dim,Ptype,IT,FT}}) where {Dim,Ptype,IT,FT}
@@ -97,14 +106,18 @@ function Base.iterate(iter::LayoutIterator{<:Stress{Dim,Ptype,IT,FT}}) where {Di
     N = size(δ, 1)
     M = length(algo.initialpos)
     rng = MersenneTwister(algo.seed)
-    startpos = Vector{Point{Dim,Ptype}}(undef, N)
-    # take the first
-    for i in 1:min(N, M)
-        startpos[i] = algo.initialpos[i]
+    startpos = randn(rng, Point{Dim,Ptype}, N)
+
+    for (k, v) in algo.initialpos
+        startpos[k] = v
     end
-    # fill the rest with random points
-    for i in (M + 1):N
-        startpos[i] = randn(rng, Point{Dim,Ptype})
+
+    if isempty(algo.pin)
+        pin = nothing
+    else
+        isbitstype(Ptype) || error("Pin position only available for isbitstype (got $Ptype)!")
+        pin = [get(algo.pin, i, SVector{Dim,Bool}(false for _ in 1:Dim)) for i in 1:N]
+        pin = reinterpret(reshape, Bool, pin)
     end
 
     # calculate iteration if :auto
@@ -122,13 +135,13 @@ function Base.iterate(iter::LayoutIterator{<:Stress{Dim,Ptype,IT,FT}}) where {Di
     pinvLw = pinv(Lw)
     oldstress = stress(startpos, distances, weights)
 
-    # the `state` of the iterator is (#iter, old stress, old pos, weights, distances pinvLw, stopflag)
-    return startpos, (1, oldstress, startpos, weights, distances, pinvLw, maxiter, false)
+    # the `state` of the iterator is (#iter, old stress, old pos, weights, distances pinvLw, pin, stopflag)
+    return startpos, (1, oldstress, startpos, weights, distances, pinvLw, maxiter, pin, false)
 end
 
 function Base.iterate(iter::LayoutIterator{<:Stress{Dim,Ptype}}, state) where {Dim,Ptype}
     algo, δ = iter.algorithm, iter.adj_matrix
-    i, oldstress, oldpos, weights, distances, pinvLw, maxiter, stopflag = state
+    i, oldstress, oldpos, weights, distances, pinvLw, maxiter, pin, stopflag = state
 
     if i >= maxiter || stopflag
         return nothing
@@ -136,8 +149,16 @@ function Base.iterate(iter::LayoutIterator{<:Stress{Dim,Ptype}}, state) where {D
 
     # TODO the faster way is to drop the first row and col from the iteration
     t = LZ(oldpos, distances, weights)
-    positions = similar(oldpos) # allocate new array but keep type of oldpos
+    positions = similar(oldpos)
     mul!(positions, pinvLw, (t * oldpos))
+
+    if !isnothing(pin)
+        # on pin positions multiply newpos with zero and add oldpos
+        _pos = reinterpret(reshape, Ptype, positions)
+        _oldpos = reinterpret(reshape, Ptype, oldpos)
+        _pos .= ((!).(pin) .* _pos) + (pin .* _oldpos)
+    end
+
     @assert all(x -> all(map(isfinite, x)), positions)
     newstress = stress(positions, distances, weights)
 
@@ -147,7 +168,7 @@ function Base.iterate(iter::LayoutIterator{<:Stress{Dim,Ptype}}, state) where {D
         stopflag = true
     end
 
-    return positions, (i + 1, newstress, positions, weights, distances, pinvLw, maxiter, stopflag)
+    return positions, (i + 1, newstress, positions, weights, distances, pinvLw, maxiter, pin, stopflag)
 end
 
 """

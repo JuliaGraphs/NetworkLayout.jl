@@ -23,8 +23,15 @@ the nodes.
 - `initialtemp=2.0`: Initial "temperature", controls movement per iteration
 - `initialpos=Point{dim,Ptype}[]`
 
-  Provide list of initial positions. If length does not match Network size the initial
-  positions will be truncated or filled up with random values between [-1,1] in every coordinate.
+  Provide `Vector` or `Dict` of initial positions. All positions will be initialized
+  using random coordinates between [-1,1]. Random positions will be overwritten using
+  the key-val-pairs provided by this argument.
+
+- `pin=[]`: Pin node positions (won't be updated). Can be given as `Vector` or `Dict`
+   of node index -> value pairings. Values can be either
+    - `(12, 4.0)` : overwrite initial position and pin
+    - `true/false` : pin this position
+    - `(true, false, false)` : only pin certain coordinates
 
 - `seed=1`: Seed for random initial positions.
 """
@@ -32,43 +39,43 @@ the nodes.
     C::Float64
     iterations::Int
     initialtemp::Float64
-    initialpos::Vector{Point{Dim,Ptype}}
+    initialpos::Dict{Int,Point{Dim,Ptype}}
+    pin::Dict{Int,SVector{Dim,Bool}}
     seed::UInt
 end
 
-function Spring(; dim=2, Ptype=Float64, C=2.0, iterations=100, initialtemp=2.0, initialpos=Point{dim,Ptype}[],
+function Spring(; dim=2, Ptype=Float64,
+                C=2.0, iterations=100, initialtemp=2.0,
+                initialpos=[], pin=[],
                 seed=1)
     if !isempty(initialpos)
-        initialpos = Point.(initialpos)
-        Ptype = eltype(eltype(initialpos))
-        # TODO fix initial pos if list has points of multiple types
-        Ptype == Any && error("Please provide list of Point{N,T} with same T")
-        dim = length(eltype(initialpos))
+        dim, Ptype = infer_pointtype(initialpos)
+        Ptype = promote_type(Float32, Ptype) # make sure to get at least f32 if given as int
     end
-    return Spring{dim,Ptype}(C, iterations, initialtemp, initialpos, seed)
+    _initialpos, _pin = _sanitize_initialpos_pin(dim, Ptype, initialpos, pin)
+
+    return Spring{dim,Ptype}(C, iterations, initialtemp, _initialpos, _pin, seed)
 end
 
 function Base.iterate(iter::LayoutIterator{<:Spring{Dim,Ptype}}) where {Dim,Ptype}
     algo, adj_matrix = iter.algorithm, iter.adj_matrix
     N = size(adj_matrix, 1)
-    M = length(algo.initialpos)
     rng = MersenneTwister(algo.seed)
-    startpos = Vector{Point{Dim,Ptype}}(undef, N)
-    # take the first
-    for i in 1:min(N, M)
-        startpos[i] = algo.initialpos[i]
+    startpos = [2 .* rand(rng, Point{Dim,Ptype}) .- 1 for _ in 1:N]
+
+    for (k, v) in algo.initialpos
+        startpos[k] = v
     end
-    # fill the rest with random points
-    for i in (M + 1):N
-        startpos[i] = 2 .* rand(rng, Point{Dim,Ptype}) .- 1
-    end
-    # iteratorstate: #iter nr, old pos
-    return (startpos, (1, startpos))
+
+    pin = [get(algo.pin, i, SVector{Dim,Bool}(false for _ in 1:Dim)) for i in 1:N]
+
+    # iteratorstate: #iter nr, old pos, pin
+    return (startpos, (1, startpos, pin))
 end
 
 function Base.iterate(iter::LayoutIterator{<:Spring}, state)
     algo, adj_matrix = iter.algorithm, iter.adj_matrix
-    iteration, old_pos = state
+    iteration, old_pos, pin = state
     iteration >= algo.iterations && return nothing
 
     # The optimal distance bewteen vertices
@@ -97,7 +104,15 @@ function Base.iterate(iter::LayoutIterator{<:Spring}, state)
             #  / |          cos θ = d_x/d = fx/F
             # /---          -> fx = F*d_x/d
             # dx fx
-            force_vec += Ftype(F_d .* (locs[j] .- locs[i]))
+            if !iszero(d)
+                force_vec += Ftype(F_d .* (locs[j] .- locs[i]))
+            else
+                # if two points are at the exact same location
+                # use random force in any direction
+                rng = MersenneTwister(algo.seed + i)
+                force_vec += randn(rng, Ftype)
+            end
+
         end
         force[i] = force_vec
     end
@@ -108,8 +123,10 @@ function Base.iterate(iter::LayoutIterator{<:Spring}, state)
         force_mag = norm(force[i])
         iszero(force_mag) && continue
         scale = min(force_mag, temp) ./ force_mag
-        locs[i] += force[i] .* scale
+
+        mask = (!).(pin[i]) # where pin=true mask will multiply with 0
+        locs[i] += force[i] .* scale .* mask
     end
 
-    return locs, (iteration + 1, locs)
+    return locs, (iteration + 1, locs, pin)
 end
