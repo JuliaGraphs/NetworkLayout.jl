@@ -4,7 +4,7 @@ export SquareGrid, squaregrid
     SquareGrid(; kwargs...)(adj_matrix)
     squaregrid(adj_matrix; kwargs...)
 
-Position nodes on a 2 dimensional rectagular grid. The nodes are palced in order
+Position nodes on a 2 dimensional rectagular grid. The nodes are placed in order
 from upper left to lower right. To skip positions see `skip` argument.
 
 Takes adjacency matrix representation of a network and returns coordinates of
