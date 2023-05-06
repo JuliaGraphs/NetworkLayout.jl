@@ -4,7 +4,8 @@ export Spring, spring
     Spring(; kwargs...)(adj_matrix)
     spring(adj_matrix; kwargs...)
 
-Use the spring/repulsion model of Fruchterman and Reingold (1991) with
+Use the spring/repulsion model of Fruchterman and Reingold (1991,
+[doi 10.1002/spe.4380211102](https://doi.org/10.1002/spe.4380211102)) with
 
 - Attractive force:  `f_a(d) =  d^2 / k`
 - Repulsive force:  `f_r(d) = -k^2 / d`
