@@ -6,10 +6,9 @@ export Spectral, spectral
     Spectral(; kwargs...)(adj_matrix)
     spectral(adj_matrix; kwargs...)
 
-This algorithm uses the technique of Spectral Graph Drawing, which is an
-under-appreciated method of graph layouts; easier, simpler, and faster than the
-more common spring-based methods. For reference see [Yehuda Koren,
-2002](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.3.2055&rep=rep1&type=pdf).
+This algorithm uses the technique of Spectral Graph Drawing.
+For reference see Koren (2003,
+[doi 10.1007/3-540-45071-8_50](https://doi.org/10.1007/3-540-45071-8_50)).
 
 Takes adjacency matrix representation of a network and returns coordinates of
 the nodes.

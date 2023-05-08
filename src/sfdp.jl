@@ -4,7 +4,9 @@ export SFDP, sfdp
     SFDP(; kwargs...)(adj_matrix)
     sfdp(adj_matrix; kwargs...)
 
-Using the Spring-Electric [model suggested by Yifan Hu](http://yifanhu.net/PUB/graph_draw_small.pdf).
+Using the Spring-Electric model suggested by Hu (2005, The Mathematica Journal,
+[pdf](http://yifanhu.net/PUB/graph_draw_small.pdf)).
+
 Forces are calculated as:
 
         f_attr(i,j) = ‖xi - xj‖ ² / K ,    i<->j

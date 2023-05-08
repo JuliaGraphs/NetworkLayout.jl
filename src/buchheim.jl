@@ -6,9 +6,8 @@ export Buchheim, buchheim
     buchheim(adj_matrix; kwargs...)
     buchheim(adj_list; kwargs...)
 
-Using the algorithm proposed in the paper,
-["Improving Walker's Algorithm to Run in Linear Time"](http://dirk.jivas.de/papers/buchheim02improving.pdf)
-by Christoph Buchheim, Michael Junger, Sebastian Leipert
+Using the algorithm proposed by Buchheim, Junger and Leipert (2002,
+[doi 10.1007/3-540-36151-0_32](https://doi.org/10.1007/3-540-36151-0_32)).
 
 Takes adjacency matrix or list representation of given tree
 and returns coordinates of the nodes.

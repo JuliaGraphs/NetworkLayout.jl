@@ -10,6 +10,9 @@ export Stress, stress
 Compute graph layout using stress majorization. Takes adjacency matrix
 representation of a network and returns coordinates of the nodes.
 
+The main equation to solve is (8) in Gansner, Koren and North (2005,
+[doi 10.1007/978-3-540-31843-9_25](https://doi.org/10.1007/978-3-540-31843-9_25)).
+
 ## Inputs:
 - `adj_matrix`: Matrix of pairwise distances.
 
@@ -51,23 +54,6 @@ representation of a network and returns coordinates of the nodes.
     - `(true, false, false)` : only pin certain coordinates
 
 - `seed=1`: Seed for random initial positions.
-
-## Reference:
-The main equation to solve is (8) of:
-
-    @incollection{
-        author = {Emden R Gansner and Yehuda Koren and Stephen North},
-        title = {Graph Drawing by Stress Majorization}
-        year={2005},
-        isbn={978-3-540-24528-5},
-        booktitle={Graph Drawing},
-        seriesvolume={3383},
-        series={Lecture Notes in Computer Science},
-        editor={Pach, J\'anos},
-        doi={10.1007/978-3-540-31843-9_25},
-        publisher={Springer Berlin Heidelberg},
-        pages={239--250},
-    }
 """
 @addcall struct Stress{Dim,Ptype,IT<:Union{Symbol,Int},FT<:AbstractFloat,M<:AbstractMatrix} <:
                 IterativeLayout{Dim,Ptype}
