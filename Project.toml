@@ -1,27 +1,38 @@
 name = "NetworkLayout"
 uuid = "46757867-2c16-5918-afeb-47bfcb05e46a"
-version = "0.4.6"
+version = "0.4.7"
 
 [deps]
 GeometryBasics = "5c1252a2-5f33-56bf-86c9-59e7332b4326"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 Requires = "ae029012-a4dd-5104-9daa-d747884805df"
-SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
 [compat]
 GeometryBasics = "0.4"
+Graphs = "1"
+LightGraphs = "1"
 Requires = "1"
 StaticArrays = "1"
-julia = "1"
+julia = "1.6"
+
+[extensions]
+NetworkLayoutGraphsExt = "Graphs"
+NetworkLayoutLightGraphsExt = "LightGraphs"
 
 [extras]
 DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 GeometryTypes = "4d00f742-c7ba-57c2-abde-4428a4b178cb"
 Graphs = "86223c79-3864-5bf0-83f7-82e725a168b6"
+LightGraphs = "093fc24a-ae57-5d10-9952-331d41423f4d"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Graphs", "Test", "DelimitedFiles", "GeometryTypes"]
+test = ["Graphs", "Test", "DelimitedFiles", "GeometryTypes", "SparseArrays"]
+
+[weakdeps]
+Graphs = "86223c79-3864-5bf0-83f7-82e725a168b6"
+LightGraphs = "093fc24a-ae57-5d10-9952-331d41423f4d"

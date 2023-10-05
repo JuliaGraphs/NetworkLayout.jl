@@ -1,5 +1,4 @@
 using LinearAlgebra: checksquare, norm, pinv, mul!
-using SparseArrays: SparseMatrixCSC
 
 export Stress, stress
 

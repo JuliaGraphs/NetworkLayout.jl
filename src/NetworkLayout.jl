@@ -1,7 +1,6 @@
 module NetworkLayout
 
 using GeometryBasics
-using Requires
 using LinearAlgebra: norm
 using Random
 using StaticArrays
@@ -86,21 +85,16 @@ function layout(alg::IterativeLayout, adj_matrix::AbstractMatrix)
     return pos
 end
 
-function __init__()
-    @require LightGraphs = "093fc24a-ae57-5d10-9952-331d41423f4d" begin
-        function layout(l::AbstractLayout, g::LightGraphs.AbstractGraph)
-            layout(l, LightGraphs.adjacency_matrix(g))
+if !isdefined(Base, :get_extension)
+    using Requires
+end
+@static if !isdefined(Base, :get_extension)
+    function __init__()
+        @require LightGraphs = "093fc24a-ae57-5d10-9952-331d41423f4d" begin
+            include("../ext/NetworkLayoutLightGraphsExt.jl")
         end
-        function LayoutIterator(l::IterativeLayout, g::LightGraphs.AbstractGraph)
-            LayoutIterator(l, LightGraphs.adjacency_matrix(g))
-        end
-    end
-    @require Graphs = "86223c79-3864-5bf0-83f7-82e725a168b6" begin
-        function layout(l::AbstractLayout, g::Graphs.AbstractGraph)
-            layout(l, Graphs.adjacency_matrix(g))
-        end
-        function LayoutIterator(l::IterativeLayout, g::Graphs.AbstractGraph)
-            LayoutIterator(l, Graphs.adjacency_matrix(g))
+        @require Graphs = "86223c79-3864-5bf0-83f7-82e725a168b6" begin
+            include("../ext/NetworkLayoutGraphsExt.jl")
         end
     end
 end
