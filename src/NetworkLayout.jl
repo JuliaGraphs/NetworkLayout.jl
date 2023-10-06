@@ -90,9 +90,6 @@ if !isdefined(Base, :get_extension)
 end
 @static if !isdefined(Base, :get_extension)
     function __init__()
-        @require LightGraphs = "093fc24a-ae57-5d10-9952-331d41423f4d" begin
-            include("../ext/NetworkLayoutLightGraphsExt.jl")
-        end
         @require Graphs = "86223c79-3864-5bf0-83f7-82e725a168b6" begin
             include("../ext/NetworkLayoutGraphsExt.jl")
         end
