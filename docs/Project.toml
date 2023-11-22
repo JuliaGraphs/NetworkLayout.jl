@@ -7,7 +7,7 @@ NetworkLayout = "46757867-2c16-5918-afeb-47bfcb05e46a"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 
 [compat]
-CairoMakie = "0.10"
+CairoMakie = "0.10, 0.11"
 Documenter = "1"
 GraphMakie = "0.5"
 Graphs = "1.9"
