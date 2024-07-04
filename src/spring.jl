@@ -35,33 +35,37 @@ the nodes.
     - `(true, false, false)` : only pin certain coordinates
 
 - `seed=1`: Seed for random initial positions.
+- `rng=DEFAULT_RNG[](seed)`
+
+  Create rng based on seed. Defaults to `MersenneTwister`, can be specified
+  by overwriting `DEFAULT_RNG[]`
 """
-@addcall struct Spring{Dim,Ptype} <: IterativeLayout{Dim,Ptype}
+@addcall struct Spring{Dim,Ptype,RNG} <: IterativeLayout{Dim,Ptype}
     C::Float64
     iterations::Int
     initialtemp::Float64
     initialpos::Dict{Int,Point{Dim,Ptype}}
     pin::Dict{Int,SVector{Dim,Bool}}
-    seed::UInt
+    rng::RNG
 end
 
 function Spring(; dim=2, Ptype=Float64,
                 C=2.0, iterations=100, initialtemp=2.0,
                 initialpos=[], pin=[],
-                seed=1)
+                seed=1, rng=DEFAULT_RNG[](seed))
     if !isempty(initialpos)
         dim, Ptype = infer_pointtype(initialpos)
         Ptype = promote_type(Float32, Ptype) # make sure to get at least f32 if given as int
     end
     _initialpos, _pin = _sanitize_initialpos_pin(dim, Ptype, initialpos, pin)
 
-    return Spring{dim,Ptype}(C, iterations, initialtemp, _initialpos, _pin, seed)
+    return Spring{dim,Ptype,typeof(rng)}(C, iterations, initialtemp, _initialpos, _pin, rng)
 end
 
 function Base.iterate(iter::LayoutIterator{<:Spring{Dim,Ptype}}) where {Dim,Ptype}
     algo, adj_matrix = iter.algorithm, iter.adj_matrix
     N = size(adj_matrix, 1)
-    rng = MersenneTwister(algo.seed)
+    rng = copy(algo.rng)
     startpos = [2 .* rand(rng, Point{Dim,Ptype}) .- 1 for _ in 1:N]
 
     for (k, v) in algo.initialpos
@@ -110,7 +114,7 @@ function Base.iterate(iter::LayoutIterator{<:Spring}, state)
             else
                 # if two points are at the exact same location
                 # use random force in any direction
-                rng = MersenneTwister(algo.seed + i)
+                rng = copy(algo.rng)
                 force_vec += randn(rng, Ftype)
             end
 

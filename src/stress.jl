@@ -53,8 +53,12 @@ The main equation to solve is (8) in Gansner, Koren and North (2005,
     - `(true, false, false)` : only pin certain coordinates
 
 - `seed=1`: Seed for random initial positions.
+- `rng=DEFAULT_RNG[](seed)`
+
+  Create rng based on seed. Defaults to `MersenneTwister`, can be specified
+  by overwriting `DEFAULT_RNG[]`
 """
-@addcall struct Stress{Dim,Ptype,IT<:Union{Symbol,Int},FT<:AbstractFloat,M<:AbstractMatrix} <:
+@addcall struct Stress{Dim,Ptype,IT<:Union{Symbol,Int},FT<:AbstractFloat,M<:AbstractMatrix,RNG} <:
                 IterativeLayout{Dim,Ptype}
     iterations::IT
     abstols::FT
@@ -63,7 +67,7 @@ The main equation to solve is (8) in Gansner, Koren and North (2005,
     weights::M
     initialpos::Dict{Int,Point{Dim,Ptype}}
     pin::Dict{Int,SVector{Dim,Bool}}
-    seed::UInt
+    rng::RNG
 end
 
 function Stress(; dim=2,
@@ -74,7 +78,7 @@ function Stress(; dim=2,
                 abstolx=10e-6,
                 weights=Array{Float64}(undef, 0, 0),
                 initialpos=[], pin=[],
-                seed=1)
+                seed=1, rng=DEFAULT_RNG[](seed))
     if !isempty(initialpos)
         dim, Ptype = infer_pointtype(initialpos)
         Ptype = promote_type(Float32, Ptype) # make sure to get at least f32 if given as int
@@ -82,15 +86,15 @@ function Stress(; dim=2,
 
     _initialpos, _pin = _sanitize_initialpos_pin(dim, Ptype, initialpos, pin)
 
-    IT, FT, WT = typeof(iterations), typeof(abstols), typeof(weights)
-    Stress{dim,Ptype,IT,FT,WT}(iterations, abstols, reltols, abstolx, weights, _initialpos, _pin, seed)
+    IT, FT, WT, RNG = typeof(iterations), typeof(abstols), typeof(weights), typeof(rng)
+    Stress{dim,Ptype,IT,FT,WT,RNG}(iterations, abstols, reltols, abstolx, weights, _initialpos, _pin, rng)
 end
 
 function Base.iterate(iter::LayoutIterator{<:Stress{Dim,Ptype,IT,FT}}) where {Dim,Ptype,IT,FT}
     algo, δ = iter.algorithm, iter.adj_matrix
     N = size(δ, 1)
     M = length(algo.initialpos)
-    rng = MersenneTwister(algo.seed)
+    rng = copy(algo.rng)
     startpos = randn(rng, Point{Dim,Ptype}, N)
 
     for (k, v) in algo.initialpos

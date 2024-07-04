@@ -33,15 +33,19 @@ the nodes.
     - `(true, false, false)` : only pin certain coordinates
 
 - `seed=1`: Seed for random initial positions.
+- `rng=DEFAULT_RNG[](seed)`
+
+  Create rng based on seed. Defaults to `MersenneTwister`, can be specified
+  by overwriting `DEFAULT_RNG[]`
 """
-@addcall struct SFDP{Dim,Ptype,T<:AbstractFloat} <: IterativeLayout{Dim,Ptype}
+@addcall struct SFDP{Dim,Ptype,T<:AbstractFloat,RNG} <: IterativeLayout{Dim,Ptype}
     tol::T
     C::T
     K::T
     iterations::Int
     initialpos::Dict{Int,Point{Dim,Ptype}}
     pin::Dict{Int,SVector{Dim,Bool}}
-    seed::UInt
+    rng::RNG
 end
 
 # TODO: check SFDP default parameters
@@ -49,20 +53,20 @@ function SFDP(; dim=2, Ptype=Float64,
               tol=1.0, C=0.2, K=1.0,
               iterations=100,
               initialpos=[], pin=[],
-              seed=1)
+              seed=1, rng=DEFAULT_RNG[](seed))
     if !isempty(initialpos)
         dim, Ptype = infer_pointtype(initialpos)
         Ptype = promote_type(Float32, Ptype) # make sure to get at least f32 if given as int
     end
     _initialpos, _pin = _sanitize_initialpos_pin(dim, Ptype, initialpos, pin)
 
-    return SFDP{dim,Ptype,typeof(tol)}(tol, C, K, iterations, _initialpos, _pin, seed)
+    return SFDP{dim,Ptype,typeof(tol),typeof(rng)}(tol, C, K, iterations, _initialpos, _pin, rng)
 end
 
-function Base.iterate(iter::LayoutIterator{SFDP{Dim,Ptype,T}}) where {Dim,Ptype,T}
+function Base.iterate(iter::LayoutIterator{<:SFDP{Dim,Ptype,T}}) where {Dim,Ptype,T}
     algo, adj_matrix = iter.algorithm, iter.adj_matrix
     N = size(adj_matrix, 1)
-    rng = MersenneTwister(algo.seed)
+    rng = copy(algo.rng)
     startpos = [2 .* rand(rng, Point{Dim,Ptype}) .- 1 for _ in 1:N]
 
     for (k, v) in algo.initialpos
@@ -106,8 +110,8 @@ function Base.iterate(iter::LayoutIterator{<:SFDP}, state)
         if any(isnan, force)
             # if two points are at the exact same location
             # use random force in any direction
-            rng = MersenneTwister(algo.seed + i)
-            force = randn(rng, Ftype)
+            rng = copy(algo.rng)
+            force += randn(rng, Ftype)
         end
         mask = (!).(pin[i]) # where pin=true mask will multiply with 0
         locs[i] = locs[i] .+ (step .* (force ./ norm(force))) .* mask
