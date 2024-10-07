@@ -108,10 +108,10 @@ function Base.iterate(iter::LayoutIterator{<:SFDP}, state)
             end
         end
         if any(isnan, force)
-            # if two points are at the exact same location
-            # use random force in any direction
-            rng = copy(algo.rng)
-            force += randn(rng, Ftype)
+            # if two points are at the exact same location use random force in any direction
+            # copy rng from alg struct to not advance the "initial" rng state
+            # otherwise algo(g)==algo(g) might be broken
+            force += randn(copy(algo.rng), Ftype)
         end
         mask = (!).(pin[i]) # where pin=true mask will multiply with 0
         locs[i] = locs[i] .+ (step .* (force ./ norm(force))) .* mask

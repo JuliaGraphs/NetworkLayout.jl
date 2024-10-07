@@ -114,8 +114,9 @@ function Base.iterate(iter::LayoutIterator{<:Spring}, state)
             else
                 # if two points are at the exact same location
                 # use random force in any direction
-                rng = copy(algo.rng)
-                force_vec += randn(rng, Ftype)
+                # copy rng from alg struct to not advance the "initial" rng state
+                # otherwise algo(g)==algo(g) might be broken
+                force_vec += randn(copy(algo.rng), Ftype)
             end
 
         end
