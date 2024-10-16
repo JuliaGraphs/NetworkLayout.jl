@@ -3,7 +3,9 @@ using NetworkLayout
 using Graphs
 using GraphMakie
 using CairoMakie
+using StableRNGs
 
+NetworkLayout.DEFAULT_RNG[] = StableRNG
 DocMeta.setdocmeta!(NetworkLayout, :DocTestSetup, :(using NetworkLayout); recursive=true)
 
 makedocs(; modules=[NetworkLayout],

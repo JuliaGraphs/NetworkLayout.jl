@@ -201,7 +201,7 @@ nothing #hide
 ```
 Example animation on how those keyword arguments effect different iterative layouts:
 ```@example layouts
-springl = Spring(;initialpos, pin, seed=11) #2
+springl = Spring(;initialpos, pin, seed=2)
 sfdpl   = SFDP(;initialpos, pin, tol=0.0)
 stressl = Stress(;initialpos, pin, reltols=0.0, abstolx=0.0, iterations=100)
 
