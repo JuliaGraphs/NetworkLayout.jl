@@ -10,7 +10,7 @@ All example images on this page are created using [`Makie.jl`](https://github.co
 ```@example layouts
 using CairoMakie
 CairoMakie.activate!(type="png") # hide
-set_theme!(resolution=(800, 400)) #hide
+set_theme!(size=(800, 400)) #hide
 using NetworkLayout
 using GraphMakie, Graphs
 nothing #hide
@@ -167,7 +167,7 @@ hidedecorations!(ax); hidespines!(ax); f #hide
 f #hide
 ```
 ```@example layouts
-set_theme!(resolution=(800, 800)) #hide
+set_theme!(size=(800, 800)) #hide
 using Random; Random.seed!(5) # hide
 layout = Spectral()
 f, ax, p = graphplot(g, layout=layout, node_size=0.0, edge_width=1.0)
@@ -205,7 +205,7 @@ springl = Spring(;initialpos, pin, seed=2)
 sfdpl   = SFDP(;initialpos, pin, tol=0.0)
 stressl = Stress(;initialpos, pin, reltols=0.0, abstolx=0.0, iterations=100)
 
-f = Figure(resolution=(1200,500))
+f = Figure(size=(1200,500))
 ax1 = f[1,1] = Axis(f; title="Spring")
 ax2 = f[1,2] = Axis(f; title="SFDP")
 ax3 = f[1,3] = Axis(f; title="Stress")
