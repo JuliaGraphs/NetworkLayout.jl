@@ -8,6 +8,11 @@ using StaticArrays
 export LayoutIterator
 
 """
+Default RNG for layouts.
+"""
+const DEFAULT_RNG = Ref{DataType}(MersenneTwister)
+
+"""
     AbstractLayout{Dim,Ptype}
 
 Abstract supertype for all layouts. Each layout `Layout <: AbstractLayout` needs to

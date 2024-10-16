@@ -4,7 +4,9 @@ using GeometryBasics
 using DelimitedFiles: readdlm
 using SparseArrays: sparse
 using StaticArrays
+using StableRNGs
 using Test
+using Random
 
 function jagmesh()
     jagmesh_path = joinpath(dirname(@__FILE__), "jagmesh1.mtx")
@@ -63,6 +65,14 @@ jagmesh_adj = jagmesh()
             positions = @time SFDP(; dim=3, Ptype=Float32, tol=0.1, K=1)(adj_matrix)
             @test typeof(positions) == Vector{Point3f}
             @test positions == sfdp(adj_matrix; dim=3, Ptype=Float32, tol=0.1, K=1)
+
+            NetworkLayout.DEFAULT_RNG[] = StableRNG
+            l = SFDP()
+            @test l.rng isa StableRNG
+            li = LayoutIterator(l, g)
+            p1, p2 = iterate(li)[1], iterate(li)[1]
+            @test p1 == p2
+            NetworkLayout.DEFAULT_RNG[] = MersenneTwister
         end
     end
 
@@ -112,6 +122,14 @@ jagmesh_adj = jagmesh()
             positions = @time Stress(; iterations=10, dim=3, Ptype=Float32)(adj_matrix)
             @test typeof(positions) == Vector{Point3f}
             @test positions == stress(adj_matrix; iterations=10, dim=3, Ptype=Float32)
+
+            NetworkLayout.DEFAULT_RNG[] = StableRNG
+            l = Stress()
+            @test l.rng isa StableRNG
+            li = LayoutIterator(l, g)
+            p1, p2 = iterate(li)[1], iterate(li)[1]
+            @test p1 == p2
+            NetworkLayout.DEFAULT_RNG[] = MersenneTwister
         end
 
         @testset "test pairwise_distance" begin
@@ -170,6 +188,14 @@ jagmesh_adj = jagmesh()
             @test typeof(positions) == Vector{Point3f}
             @test positions ==
                   spring(adj_matrix; C=2.0, iterations=100, initialtemp=2.0, Ptype=Float32, dim=3)
+
+            NetworkLayout.DEFAULT_RNG[] = StableRNG
+            l = Spring()
+            @test l.rng isa StableRNG
+            li = LayoutIterator(l, g)
+            p1, p2 = iterate(li)[1], iterate(li)[1]
+            @test p1 == p2
+            NetworkLayout.DEFAULT_RNG[] = MersenneTwister
         end
 
         @testset "test single node graph" begin
