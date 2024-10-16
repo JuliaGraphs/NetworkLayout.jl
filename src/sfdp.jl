@@ -76,12 +76,12 @@ function Base.iterate(iter::LayoutIterator{<:SFDP{Dim,Ptype,T}}) where {Dim,Ptyp
     pin = [get(algo.pin, i, SVector{Dim,Bool}(false for _ in 1:Dim)) for i in 1:N]
 
     # iteratorstate: (#iter, energy, step, progress, old pos, pin, stopflag)
-    return startpos, (1, typemax(T), one(T), 0, startpos, pin, false)
+    return startpos, (1, typemax(T), one(T), 0, startpos, pin, rng, false)
 end
 
 function Base.iterate(iter::LayoutIterator{<:SFDP}, state)
     algo, adj_matrix = iter.algorithm, iter.adj_matrix
-    iter, energy0, step, progress, locs0, pin, stopflag = state
+    iter, energy0, step, progress, locs0, pin, rng, stopflag = state
     K, C, tol = algo.K, algo.C, algo.tol
 
     # stop if stopflag (tol reached) or nr of iterations reached
@@ -109,9 +109,7 @@ function Base.iterate(iter::LayoutIterator{<:SFDP}, state)
         end
         if any(isnan, force)
             # if two points are at the exact same location use random force in any direction
-            # copy rng from alg struct to not advance the "initial" rng state
-            # otherwise algo(g)==algo(g) might be broken
-            force += randn(copy(algo.rng), Ftype)
+            force = randn(rng, Ftype)
         end
         mask = (!).(pin[i]) # where pin=true mask will multiply with 0
         locs[i] = locs[i] .+ (step .* (force ./ norm(force))) .* mask
@@ -124,7 +122,7 @@ function Base.iterate(iter::LayoutIterator{<:SFDP}, state)
         stopflag = true
     end
 
-    return locs, (iter + 1, energy, step, progress, locs, pin, stopflag)
+    return locs, (iter + 1, energy, step, progress, locs, pin, rng, stopflag)
 end
 
 # Calculate Attractive force
