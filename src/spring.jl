@@ -75,12 +75,12 @@ function Base.iterate(iter::LayoutIterator{<:Spring{Dim,Ptype}}) where {Dim,Ptyp
     pin = [get(algo.pin, i, SVector{Dim,Bool}(false for _ in 1:Dim)) for i in 1:N]
 
     # iteratorstate: #iter nr, old pos, pin
-    return (startpos, (1, startpos, pin))
+    return (startpos, (1, startpos, pin, rng))
 end
 
 function Base.iterate(iter::LayoutIterator{<:Spring}, state)
     algo, adj_matrix = iter.algorithm, iter.adj_matrix
-    iteration, old_pos, pin = state
+    iteration, old_pos, pin, rng = state
     iteration >= algo.iterations && return nothing
 
     # The optimal distance bewteen vertices
@@ -114,9 +114,7 @@ function Base.iterate(iter::LayoutIterator{<:Spring}, state)
             else
                 # if two points are at the exact same location
                 # use random force in any direction
-                # copy rng from alg struct to not advance the "initial" rng state
-                # otherwise algo(g)==algo(g) might be broken
-                force_vec += randn(copy(algo.rng), Ftype)
+                force_vec += randn(rng, Ftype)
             end
 
         end
@@ -134,5 +132,5 @@ function Base.iterate(iter::LayoutIterator{<:Spring}, state)
         locs[i] += force[i] .* scale .* mask
     end
 
-    return locs, (iteration + 1, locs, pin)
+    return locs, (iteration + 1, locs, pin, rng)
 end
