@@ -7,6 +7,9 @@ using StaticArrays
 using StableRNGs
 using Test
 using Random
+using LinearAlgebra
+
+NetworkLayout.DEFAULT_RNG[] = StableRNG
 
 function jagmesh()
     jagmesh_path = joinpath(dirname(@__FILE__), "jagmesh1.mtx")
@@ -147,6 +150,40 @@ jagmesh_adj = jagmesh()
                                         0 0 0 0 2;
                                         0 0 0 0 0])
 
+        end
+
+        @testset "test unconnected graphs" begin
+            _δ = [0 1 1;
+                  1 0 1;
+                  1 1 0]
+            N = 10# 10 fully connected 3-node graphs
+            δ = kron(Matrix(I, N, N), _δ);
+            g = SimpleGraph(δ)
+            pos = Stress()(g)
+            @test all(norm.(pos) .< 2)
+            # graphplot(g; layout=Stress())
+
+            sgkeys = [:bull, :chvatal, :cubical, :desargues,
+                      :diamond, :dodecahedral, :frucht, :heawood,
+                      :house, :housex, :icosahedral, :karate, :krackhardtkite,
+                      :moebiuskantor, :octahedral, :pappus, :petersen,
+                      :sedgewickmaze, :tetrahedral, :truncatedcube,
+                      :truncatedtetrahedron, :truncatedtetrahedron_dir, :tutte]
+            gs = filter(!is_directed, smallgraph.(sgkeys))
+            absdim = mapreduce(nv, +, gs)
+            adj = zeros(Int, absdim, absdim);
+            let i = 1
+                for g in gs
+                    r = i:i+nv(g)-1
+                    adj[r, r] .= adjacency_matrix(g)
+                    i += nv(g)
+                end
+            end
+            g = SimpleGraph(adj)
+
+            pos = Stress()(g)
+            @test all(norm.(pos) .< 20)
+            # graphplot(g; layout=Stress())
         end
     end
 

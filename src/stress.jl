@@ -1,4 +1,4 @@
-using LinearAlgebra: checksquare, norm, pinv, mul!
+using LinearAlgebra: checksquare, norm, pinv, mul!, nullspace
 
 export Stress, stress
 
@@ -57,8 +57,13 @@ The main equation to solve is (8) in Gansner, Koren and North (2005,
 
   Create rng based on seed. Defaults to `MersenneTwister`, can be specified
   by overwriting `DEFAULT_RNG[]`
+
+- `uncon_dist=(maxdist, Ncomps)->maxdist*Ncomps^(1/3)`
+
+  Per default, unconnected vertices in the graph get a pairwise "ideal" distance which scales
+  with the number of connected components and the maximum distance within the components.
 """
-@addcall struct Stress{Dim,Ptype,IT<:Union{Symbol,Int},FT<:AbstractFloat,M<:AbstractMatrix,RNG} <:
+@addcall struct Stress{Dim,Ptype,IT<:Union{Symbol,Int},FT<:AbstractFloat,M<:AbstractMatrix,F,RNG} <:
                 IterativeLayout{Dim,Ptype}
     iterations::IT
     abstols::FT
@@ -67,6 +72,7 @@ The main equation to solve is (8) in Gansner, Koren and North (2005,
     weights::M
     initialpos::Dict{Int,Point{Dim,Ptype}}
     pin::Dict{Int,SVector{Dim,Bool}}
+    uncon_dist::F
     rng::RNG
 end
 
@@ -76,6 +82,7 @@ function Stress(; dim=2,
                 abstols=0.0,
                 reltols=10e-6,
                 abstolx=10e-6,
+                uncon_dist=(maxd, N)->maxd*N^(1/3),
                 weights=Array{Float64}(undef, 0, 0),
                 initialpos=[], pin=[],
                 seed=1, rng=DEFAULT_RNG[](seed))
@@ -86,8 +93,8 @@ function Stress(; dim=2,
 
     _initialpos, _pin = _sanitize_initialpos_pin(dim, Ptype, initialpos, pin)
 
-    IT, FT, WT, RNG = typeof(iterations), typeof(abstols), typeof(weights), typeof(rng)
-    Stress{dim,Ptype,IT,FT,WT,RNG}(iterations, abstols, reltols, abstolx, weights, _initialpos, _pin, rng)
+    IT, FT, WT, RNG, F = typeof(iterations), typeof(abstols), typeof(weights), typeof(rng), typeof(uncon_dist)
+    Stress{dim,Ptype,IT,FT,WT,F,RNG}(iterations, abstols, reltols, abstolx, weights, _initialpos, _pin, uncon_dist, rng)
 end
 
 function Base.iterate(iter::LayoutIterator{<:Stress{Dim,Ptype,IT,FT}}) where {Dim,Ptype,IT,FT}
@@ -116,6 +123,20 @@ function Base.iterate(iter::LayoutIterator{<:Stress{Dim,Ptype,IT,FT}}) where {Di
     # if user provided weights not empty try those
     make_symmetric!(δ)
     distances = pairwise_distance(δ, FT)
+
+    # check for unconnected commponents and set pairwise distances
+    if any(isequal(typemax(FT)), distances)
+        maxd = maximum(filter(isfinite, distances))
+        laplacian = weightedlaplacian(δ)
+        Ncomponents = size(nullspace(laplacian),2)
+        _dist = algo.uncon_dist(maxd, Ncomponents)
+        for i in eachindex(distances)
+            if isinf(distances[i])
+                distances[i] = _dist
+            end
+        end
+    end
+
     weights = isempty(algo.weights) ? distances .^ (-2) : algo.weights
 
     @assert length(startpos) == size(δ, 1) == size(δ, 2) == size(weights, 1) == size(weights, 2) "Wrong size of weights?"
