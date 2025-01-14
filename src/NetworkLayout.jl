@@ -174,7 +174,7 @@ infer the PType and the dimension.
 i.e.
     infer_pointtype([(1,2), (2.3, 4)]) == (2, Float64)
 """
-infer_pointtype(::AbstractPoint{dim,t}) where {dim,t} = dim, t
+infer_pointtype(::GeometryBasics.AbstractPoint{dim,t}) where {dim,t} = dim, t
 infer_pointtype(::NTuple{dim,t}) where {dim,t} = dim, t
 infer_pointtype(t::Tuple) = length(t), promote_type(typeof(t).parameters...)
 function infer_pointtype(v)
