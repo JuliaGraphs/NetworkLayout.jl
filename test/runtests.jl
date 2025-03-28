@@ -1,4 +1,5 @@
 using NetworkLayout
+using NetworkLayout: AbstractLayout, @addcall
 using Graphs
 using GeometryBasics
 using DelimitedFiles: readdlm
@@ -467,7 +468,6 @@ jagmesh_adj = jagmesh()
     end
 
     @testset "Align" begin
-        using NetworkLayout: AbstractLayout, @addcall
         @addcall struct Manual{Dim, Ptype} <: AbstractLayout{Dim, Ptype}
             positions :: Vector{Point{Dim, Ptype}}
         end
