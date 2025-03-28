@@ -465,4 +465,21 @@ jagmesh_adj = jagmesh()
             @test ep[5][2] != [2]
         end
     end
+
+    @testset "Align" begin
+        using NetworkLayout: AbstractLayout, @addcall
+        @addcall struct Manual{Dim, Ptype} <: AbstractLayout{Dim, Ptype}
+            positions :: Vector{Point{Dim, Ptype}}
+        end
+        NetworkLayout.layout(algo::Manual, ::AbstractMatrix) = copy(algo.positions)
+        
+        g = Graph(2); add_edge!(g, 1, 2)
+        pos = Align(Manual([Point2f(1, 2), Point2f(2, 3)]), 0.0)(g)
+        @test all(r->abs(r[2])<1e-12, pos)
+        @test norm(pos[1]-pos[2]) == norm(Point2f(1, 2)-Point2f(2, 3))
+
+        g = Graph(3); add_edge!(g, 1, 2); add_edge!(g, 2, 3); add_edge!(g, 3, 1)
+        pos = Align(Manual([Point2f(0, 4), Point2f(-1, -2), Point2f(1, -2)]), 0.0)(g)
+        @test pos ≈ [Point2f(4, 0), Point2f(-2, 1), Point2f(-2, -1)]
+    end
 end
