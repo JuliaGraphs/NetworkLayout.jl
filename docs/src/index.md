@@ -115,8 +115,11 @@ Align
 ```@example layouts
 g = smallgraph(:cubical)
 layout = Spring(Ptype=Float32)
-f, ax, p = graphplot(g, layout=layout) # horizontal alignment (zero-angle by default)
+f, ax, p = graphplot(g, layout=layout) # horizontal alignment (zero angle by default)
 hidedecorations!(ax); hidespines!(ax); ax.aspect = DataAspect(); f #hide
+```
+
+```@example layouts
 f, ax, p = graphplot(g, layout=Align(layout, pi/2)) # vertical alignment
 hidedecorations!(ax); hidespines!(ax); ax.aspect = DataAspect(); f #hide
 ```
