@@ -1,14 +1,14 @@
 export Align
 
 """
-    Align(inner_layout :: AbstractLayout{2}, angle :: Real = zero(Float64))
+    Align(inner_layout :: AbstractLayout{2, Ptype}, angle :: Ptype = zero(Ptype))
     
 Align the vertex positions of `inner_layout` so that the principal axis of the resulting
 layout makes an `angle` with the **x**-axis.
 
 Only supports two-dimensional inner layouts.
 """
-struct Align{Ptype, L <: AbstractLayout{2, Ptype}} <: AbstractLayout{2, Ptype}
+@addcall struct Align{Ptype, L <: AbstractLayout{2, Ptype}} <: AbstractLayout{2, Ptype}
     inner_layout :: L
     angle :: Ptype
     function Align(inner_layout::L, angle::Real) where {L <: AbstractLayout{2, Ptype}} where Ptype
