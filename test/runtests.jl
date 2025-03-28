@@ -481,5 +481,8 @@ jagmesh_adj = jagmesh()
         g = Graph(3); add_edge!(g, 1, 2); add_edge!(g, 2, 3); add_edge!(g, 3, 1)
         pos = Align(Manual([Point2f(0, 4), Point2f(-1, -2), Point2f(1, -2)]), 0.0)(g)
         @test pos ≈ [Point2f(4, 0), Point2f(-2, 1), Point2f(-2, -1)]
+
+        pos = Align(Manual([Point2f(0, 4), Point2f(-1, -2), Point2f(1, -2)]), π/2)(g)
+        @test pos ≈ [Point2f(0, 4), Point2f(-1, -2), Point2f(1, -2)]
     end
 end
