@@ -5,6 +5,7 @@ export Align
     
 Align the vertex positions of `inner_layout` so that the principal axis of the resulting
 layout makes an `angle` with the **x**-axis.
+Also automatically centers the layout origin to its center of mass (average node position).
 
 Only supports two-dimensional inner layouts.
 """
@@ -40,7 +41,7 @@ function layout(algo::Align{Ptype, <:AbstractLayout{2, Ptype}}, adj_matrix::Abst
     s, c = sincos(-axis_angle + algo.angle)
     R = @SMatrix [c -s; s c] # [cos(θ) -sin(θ); sin(θ) cos(θ)]
     for (i, r) in enumerate(rs)
-        rs[i] = Point2{Ptype}(R * r) :: Point2{Ptype}
+        rs[i] = Point2{Ptype}(R * (r-centerofmass)) :: Point2{Ptype}
     end
 
     return rs

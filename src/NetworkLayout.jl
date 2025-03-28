@@ -214,7 +214,7 @@ macro addcall(expr::Expr)
     @assert typedef isa Expr &&
             typedef.head === :<: &&
             typedef.args[2] isa Expr && # supertype
-            typedef.args[2].args[1] ∈ [:AbstractLayout, :IterativeLayout] "Macro musst be used on subtype of AbstractLayout"
+            typedef.args[2].args[1] ∈ [:AbstractLayout, :IterativeLayout] "Macro must be used on subtype of AbstractLayout"
 
     if typedef.args[1] isa Symbol # no type parameters
         name = typedef.args[1]
