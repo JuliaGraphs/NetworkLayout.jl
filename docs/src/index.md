@@ -104,6 +104,25 @@ nothing #hide
 ```
 ![spring animation](spring_animation.mp4)
 
+## Aligning Layouts
+
+Any two-dimensional layout can have its principal axis aligned along a desired angle (default, zero angle), by nesting an "inner" layout into an [`Align`](@ref) layout.
+For example, we may align the above `Spring` layout of the small cubical graph along the horizontal or vertical axes:
+
+```@docs
+Align
+```
+```@example layouts
+g = smallgraph(:cubical)
+f, ax, p = graphplot(g, layout=Align(Spring())) # horizontal alignment (zero angle by default)
+hidedecorations!(ax); hidespines!(ax); ax.aspect = DataAspect(); f #hide
+```
+
+```@example layouts
+f, ax, p = graphplot(g, layout=Align(Spring(), pi/2)) # vertical alignment
+hidedecorations!(ax); hidespines!(ax); ax.aspect = DataAspect(); f #hide
+```
+
 ## Stress Majorization
 ```@docs
 Stress
