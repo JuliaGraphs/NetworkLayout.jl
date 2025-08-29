@@ -16,7 +16,7 @@ Graphs = "86223c79-3864-5bf0-83f7-82e725a168b6"
 NetworkLayoutGraphsExt = "Graphs"
 
 [compat]
-GeometryBasics = "0.4, 0.5"
+GeometryBasics = "0.5"
 Graphs = "1"
 Requires = "1"
 StableRNGs = "1.0.2"
