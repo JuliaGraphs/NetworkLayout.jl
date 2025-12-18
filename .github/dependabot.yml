@@ -2,7 +2,9 @@ version: 2
 enable-beta-ecosystems: true
 updates:
   - package-ecosystem: "julia"
-    directory: "/"
+    directories: # Location of Julia projects
+      - "/"
+      - "/docs"
     schedule:
       interval: "weekly"
   - package-ecosystem: "github-actions"
