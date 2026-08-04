@@ -56,7 +56,7 @@ end
 function adj_mat_to_list(M::AbstractMatrix)
     N = size(M, 1)
     list = Vector{Vector{Int}}(undef, N)
-    for i in 1:N
+    for i in eachindex(list)
         list[i] = findall(!iszero, view(M, i, :))
     end
     return list
@@ -83,7 +83,7 @@ end
 
 function parent(v, t::Tree)
     tree = t.nodes
-    for i in 1:length(tree)
+    for i in eachindex(tree)
         if v ∈ tree[i]
             return i
         end
@@ -97,7 +97,7 @@ function first_walk(v, t::Tree)
     tree = t.nodes
     nodesize = t.nodesize
     p = parent(v, t)
-    if p != nothing
+    if !isnothing(p)
         index = findall(x -> (x == v), tree[p])[1]
     else
         index = 1
@@ -134,7 +134,7 @@ function apportion(v::T, defaultAncestor::T, t::Tree) where {T}
     thread = t.thread
     p = parent(v, t)
     nodesize = t.nodesize
-    if p != nothing
+    if !isnothing(p)
         index = findall(x -> (x == v), tree[p])[1]
     else
         index = 1

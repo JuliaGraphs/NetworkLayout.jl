@@ -9,7 +9,7 @@ Also automatically centers the layout origin to its center of mass (average node
 
 Only supports two-dimensional inner layouts.
 """
-@addcall struct Align{Ptype, L <: AbstractLayout{2, Ptype}} <: AbstractLayout{2, Ptype}
+struct Align{Ptype, L <: AbstractLayout{2, Ptype}} <: AbstractLayout{2, Ptype}
     inner_layout :: L
     angle :: Ptype
     function Align(inner_layout::L, angle::Real) where {L <: AbstractLayout{2, Ptype}} where Ptype

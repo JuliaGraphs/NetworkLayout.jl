@@ -125,7 +125,7 @@ function Base.iterate(iter::LayoutIterator{<:Stress{Dim,Ptype,IT,FT}}) where {Di
     distances = pairwise_distance(δ, FT)
 
     # check for unconnected commponents and set pairwise distances
-    if any(isequal(typemax(FT)), distances)
+    if (any(isinf, distances))::Bool
         maxd = maximum(filter(isfinite, distances))
         laplacian = weightedlaplacian(δ)
         Ncomponents = size(nullspace(laplacian),2)
