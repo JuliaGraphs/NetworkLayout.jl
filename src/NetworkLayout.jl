@@ -239,5 +239,6 @@ include("spectral.jl")
 include("shell.jl")
 include("squaregrid.jl")
 include("align.jl")
+include("sugiyama.jl")
 
 end

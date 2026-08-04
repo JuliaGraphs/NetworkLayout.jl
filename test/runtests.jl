@@ -341,6 +341,8 @@ jagmesh_adj = jagmesh()
         end
     end
 
+    include("sugiyama_test.jl")
+
     @testset "Testing Square Grid Layout" begin
         println("SquareGrid")
         @testset "Testing col length" begin

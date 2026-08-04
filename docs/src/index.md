@@ -82,6 +82,30 @@ f, ax, p = graphplot(g, layout=layout)
 hidedecorations!(ax); hidespines!(ax); ax.aspect = DataAspect(); f #hide
 ```
 
+## Sugiyama Layered Layout
+```@docs
+Sugiyama
+```
+### Example
+```@example layouts
+g = SimpleDiGraph(10)
+for (s,d) in [(1,2),(2,3),(3,4),(3,5),(4,6),(4,7),(4,8),(4,9),(5,6),(5,7),(5,8),(5,9),
+              (6,10),(7,10),(8,10),(9,10)]
+    add_edge!(g, s, d)
+end
+layout = Sugiyama()
+f, ax, p = graphplot(g, layout=layout)
+hidedecorations!(ax); hidespines!(ax); ax.aspect = DataAspect(); f #hide
+```
+Edges that span more than one rank are routed around the nodes in between
+via internal "dummy" vertices; use `direction=:right` to flow left-to-right
+instead of top-to-bottom:
+```@example layouts
+layout = Sugiyama(direction=:right)
+f, ax, p = graphplot(g, layout=layout)
+hidedecorations!(ax); hidespines!(ax); ax.aspect = DataAspect(); f #hide
+```
+
 ## Spring/Repulsion Model
 ```@docs
 Spring
