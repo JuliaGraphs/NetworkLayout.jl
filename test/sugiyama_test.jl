@@ -270,6 +270,31 @@
             end
         end
 
+        @testset "type-1 conflicts: last vertex of a row must be checked (rust-port #27)" begin
+            # Two ranks: upper = [A,B,C,D,Dm] (Dm a dummy continuing a chain into
+            # the lower rank), lower = [E,Dm2,F] (Dm2 continues that chain, F is
+            # an ordinary vertex and also the last position in the lower rank).
+            # A->F should be flagged: drawing it straight would cross the Dm-Dm2
+            # inner segment.
+            g = SugiGraph()
+            for _ in 1:8
+                _add_vertex!(g)
+            end
+            A, B, C, D, Dm, E, Dm2, F = 1:8
+            _add_edge!(g, B, E)   # ordinary edge, well inside any window
+            _add_edge!(g, Dm, Dm2) # inner segment (dummy -> dummy)
+            _add_edge!(g, A, F)   # crosses the inner segment: must be flagged
+
+            layers = [[A, B, C, D, Dm], [E, Dm2, F]]
+            g.verts[Dm].is_dummy = true
+            g.verts[Dm2].is_dummy = true
+            reset_alignment!(g, layers)
+            mark_type1_conflicts!(g, layers)
+
+            @test !g.edges[find_edge(g, B, E)].has_type1_conflict
+            @test g.edges[find_edge(g, A, F)].has_type1_conflict
+        end
+
         @testset "down-right alignment (exact root & align)" begin
             g, l = fixture()
             mark_type1_conflicts!(g, l)

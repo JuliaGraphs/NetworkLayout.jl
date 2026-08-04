@@ -38,7 +38,10 @@ function get_inner_segment_upper_neighbor(g::SugiGraph, id::Int)
     return nothing
 end
 
-# Must run after `reset_alignment!` has populated `.pos` for `layers`.
+# Must run after `reset_alignment!` has populated `.pos` for `layers`
+# (rust-port #26). The inner loop includes `l_1` itself, not just
+# everything strictly before it, or the last vertex of each boundary
+# segment never gets checked (rust-port #27).
 function mark_type1_conflicts!(g::SugiGraph, layers::Vector{Vector{Int}})
     for r in 1:(length(layers) - 1)
         level = layers[r]
@@ -55,7 +58,7 @@ function mark_type1_conflicts!(g::SugiGraph, layers::Vector{Vector{Int}})
             else
                 continue
             end
-            while l < l_1 - 1
+            while l < l_1
                 vertex = next_level[l + 1]
                 upper_neighbors = sort!(collect(in_neighbors(g, vertex)); by=u -> g.verts[u].pos)
                 for un in upper_neighbors
