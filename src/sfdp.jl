@@ -148,7 +148,7 @@ end
 
 function dist_tolerance(locs, locs0, K, tol)
     # check whether the layout is optimal
-    for i in 1:size(locs, 1)
+    for i in eachindex(locs, locs0)
         if norm(locs[i] .- locs0[i]) >= K * tol
             return false
         end

@@ -150,7 +150,7 @@ function _sanitize_initialpos_pin(dim, Ptype, initialpos, pin)
 
     _pin = Dict{Int,SVector{dim,Bool}}()
     for (k, v) in pairs(pin)
-        if v == nothing
+        if isnothing(v)
             continue
         elseif v isa Bool
             _pin[k] = SVector{dim,Bool}(v for i in 1:dim)
@@ -214,7 +214,8 @@ macro addcall(expr::Expr)
     @assert typedef isa Expr &&
             typedef.head === :<: &&
             typedef.args[2] isa Expr && # supertype
-            typedef.args[2].args[1] ∈ [:AbstractLayout, :IterativeLayout] "Macro must be used on subtype of AbstractLayout"
+            (typedef.args[2].args[1] === :AbstractLayout ||
+             typedef.args[2].args[1] === :IterativeLayout) "Macro must be used on subtype of AbstractLayout"
 
     if typedef.args[1] isa Symbol # no type parameters
         name = typedef.args[1]
