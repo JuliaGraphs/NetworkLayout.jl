@@ -26,7 +26,7 @@ Spectral(; dim=3, Ptype=Float64, nodeweights=Float64[]) = Spectral{dim,Ptype,elt
 
 function make_symmetric(adj_matrix::AbstractMatrix)
     adj_matrix = copy(adj_matrix)
-    for i in 1:size(adj_matrix, 1), j in (i + 1):size(adj_matrix, 2)
+    for i in axes(adj_matrix, 1), j in (i + 1):lastindex(adj_matrix, 2)
         adj_matrix[i, j] = adj_matrix[j, i] = adj_matrix[i, j] + adj_matrix[j, i]
     end
     return adj_matrix

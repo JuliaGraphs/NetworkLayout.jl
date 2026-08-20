@@ -40,10 +40,11 @@ function layout(algo::SquareGrid{Ptype}, adj_matrix::AbstractMatrix) where {Ptyp
     end
 
     positions = Vector{Point2{Ptype}}(undef, N)
+    skip = Set(algo.skip)
 
     n = 1
     for j in 1:typemax(Int), i in 1:cols
-        if (j, i) ∉ algo.skip
+        if (j, i) ∉ skip
             positions[n] = Point2{Ptype}((i - 1) * algo.dx, (j - 1) * algo.dy)
             n += 1
             n > N && break
