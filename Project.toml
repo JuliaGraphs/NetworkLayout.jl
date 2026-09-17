@@ -18,6 +18,7 @@ NetworkLayoutGraphsExt = "Graphs"
 [compat]
 GeometryBasics = "0.5"
 Graphs = "1"
+Random = "< 0.0.1, 1.6"
 Requires = "1"
 StableRNGs = "1.0.2"
 StaticArrays = "1"
