@@ -152,6 +152,60 @@ nothing #hide
 ```
 ![stress animation](stress_animation.mp4)
 
+## Egocentric Layout
+```@docs
+Egocentric
+```
+### Example
+An egocentric layout puts one vertex at the centre and arranges everyone else on
+concentric rings, one per geodesic step away from it. The angles still come from
+a regular stress layout, so vertices that are close in the network stay close on
+their ring.
+```@example layouts
+set_theme!(size=(800, 400)) #hide
+g = watts_strogatz(120, 4, 0.3; seed=2)
+focus = 1
+layout = Egocentric(; focus)
+
+node_color = [i == focus ? :tomato : :black for i in 1:nv(g)]
+node_size = [i == focus ? 20 : 6 for i in 1:nv(g)]
+f, ax, p = graphplot(g; layout, node_color, node_size, edge_width=0.5)
+for r in 1:maximum(gdistances(g, focus))
+    arc!(ax, Point2f(0), r, -pi, pi; color=(:gray, 0.5), linewidth=0.5)
+end
+hidedecorations!(ax); hidespines!(ax); ax.aspect = DataAspect(); f
+```
+
+### Bounding the extent with `maxdist`
+Since the radius of a vertex equals its graph distance, a few remote vertices can
+dominate the frame. `maxdist` keeps the rings up to that distance intact and
+compresses everything beyond it onto a narrow band, keeping the angles:
+```@example layouts
+layout = Egocentric(; focus, maxdist=4)
+f, ax, p = graphplot(g; layout, node_color, node_size, edge_width=0.5)
+for r in 1:4
+    arc!(ax, Point2f(0), r, -pi, pi; color=(:gray, 0.5), linewidth=0.5)
+end
+hidedecorations!(ax); hidespines!(ax); ax.aspect = DataAspect(); f
+```
+Passing a number instead of a function, e.g. `compress=1`, collapses everything
+past `maxdist` onto a single outer ring, which is a compact way to show "further
+away than `maxdist`" without saying how much further.
+
+### Iterator Example
+```@example layouts
+layout = Egocentric(; focus)
+f, ax, p = graphplot(g; layout, node_color, node_size, edge_width=0.5)
+hidedecorations!(ax); hidespines!(ax); ax.aspect = DataAspect() #hide
+iterator = LayoutIterator(layout, g)
+record(f, "egocentric_animation.mp4", iterator; framerate = 10) do pos
+    p[:node_pos][] = pos
+    autolimits!(ax)
+end
+nothing #hide
+```
+![egocentric animation](egocentric_animation.mp4)
+
 ##  Shell/Circular Layout
 ```@docs
 Shell
@@ -195,8 +249,9 @@ f #hide
 
 ## `pin` Positions in Interative Layouts
 Sometimes it is desired to fix the positions of a few nodes while arranging the rest "naturally" around them.
-The iterative layouts [`Stress`](@ref), [`Spring`](@ref) and [`SFDP`](@ref) allow to pin
-nodes to certain positions, i.e. those node will stay fixed during the iteration.
+The iterative layouts [`Stress`](@ref), [`Spring`](@ref), [`SFDP`](@ref) and
+[`Egocentric`](@ref) allow to pin nodes to certain positions, i.e. those node will
+stay fixed during the iteration.
 ```@example layouts
 g = SimpleGraph(vcat(hcat(zeros(4,4), ones(4,4)), hcat(ones(4,4), zeros(4,4))))
 nothing #hide

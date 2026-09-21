@@ -190,6 +190,169 @@ jagmesh_adj = jagmesh()
         end
     end
 
+    @testset "Testing Egocentric Layout" begin
+        println("Egocentric")
+        @testset "Egocentric construction" begin
+            algo = Egocentric()
+            @test algo isa Egocentric{2,Float64}
+            @test algo.focus == 1
+            algo = Egocentric(; dim=3, Ptype=Float32, focus=4)
+            @test algo isa Egocentric{3,Float32}
+            @test algo.focus == 4
+            algo = Egocentric(; initialpos=[Point2f(1, 2)])
+            @test algo isa Egocentric{2,Float32}
+
+            @test_throws ArgumentError Egocentric(; focus=0)
+            @test_throws ArgumentError Egocentric(; tseq=Float64[])
+            @test_throws ArgumentError Egocentric(; tseq=[0.0, 1.5])
+            @test_throws ArgumentError Egocentric(; iterations=0)
+            @test_throws ArgumentError Egocentric(; focus=11)(wheel_graph(10))
+        end
+
+        @testset "focal vertex sits at the origin" begin
+            g = watts_strogatz(40, 4, 0.1; seed=3)
+            for v in (1, 7, 40)
+                pos = egocentric(g; focus=v)
+                @test pos[v] == zero(Point2f)
+                @test length(pos) == nv(g)
+            end
+        end
+
+        @testset "radii match the graph distances" begin
+            for g in (wheel_graph(10), watts_strogatz(60, 4, 0.1; seed=3),
+                      smallgraph(:petersen), path_graph(2), SimpleGraph(1))
+                v = 1
+                pos = egocentric(g; focus=v)
+                d = gdistances(g, v)
+                @test all(i -> isapprox(norm(pos[i]), d[i]; atol=1e-6), 1:nv(g))
+            end
+        end
+
+        @testset "distances are respected in 3d" begin
+            g = watts_strogatz(40, 4, 0.1; seed=3)
+            pos = egocentric(g; focus=6, dim=3, Ptype=Float32)
+            @test typeof(pos) == Vector{Point3f}
+            d = gdistances(g, 6)
+            @test all(i -> isapprox(norm(pos[i]), d[i]; atol=1e-4), 1:nv(g))
+        end
+
+        @testset "weighted adjacency matrix" begin
+            w = Float64.(adjacency_matrix(path_graph(4)))
+            w[1, 2] = w[2, 1] = 3.0
+            pos = egocentric(w; focus=1)
+            @test norm.(pos) ≈ [0.0, 3.0, 4.0, 5.0]
+        end
+
+        @testset "maxdist compression" begin
+            g = watts_strogatz(60, 4, 0.1; seed=3)
+            v = 7
+            d = gdistances(g, v)
+            @test maximum(d) > 2
+
+            pos = egocentric(g; focus=v, maxdist=2)
+            @test all(i -> isapprox(norm(pos[i]), d[i]; atol=1e-6), findall(<=(2), d))
+            # compressed, but still ordered by distance and never inside the ring
+            far = findall(>(2), d)
+            @test all(i -> norm(pos[i]) > 2, far)
+            @test all(((i, j),) -> d[i] >= d[j] || norm(pos[i]) < norm(pos[j]),
+                      Iterators.product(far, far))
+
+            # a constant puts every distant vertex on a single outer ring
+            pos = egocentric(g; focus=v, maxdist=2, compress=1)
+            @test all(i -> isapprox(norm(pos[i]), 3; atol=1e-6), far)
+
+            # `nothing` clamps onto the ring itself
+            pos = egocentric(g; focus=v, maxdist=2, compress=nothing)
+            @test all(i -> isapprox(norm(pos[i]), 2; atol=1e-6), far)
+            @test maximum(norm, pos) <= 2 + 1e-6
+
+            # angles are untouched by the compression
+            plain = egocentric(g; focus=v)
+            @test all(i -> isapprox(atan(pos[i][2], pos[i][1]),
+                                    atan(plain[i][2], plain[i][1]); atol=1e-6),
+                      setdiff(1:nv(g), v))
+        end
+
+        @testset "unconnected vertices" begin
+            g = SimpleGraph(10)
+            add_edge!(g, 1, 2); add_edge!(g, 2, 3); add_edge!(g, 5, 6)
+            pos = egocentric(g; focus=1)
+            @test all(p -> all(isfinite, p), pos)
+            @test norm(pos[2]) ≈ 1
+            @test norm(pos[3]) ≈ 2
+            # everything unreachable from the focus ends up on the same outer ring
+            unreachable = 4:10
+            @test length(unique(round.(norm.(pos[unreachable]); digits=6))) == 1
+
+            pos = egocentric(g; focus=1, uncon_dist=(maxd, N) -> 42.0)
+            @test all(i -> isapprox(norm(pos[i]), 42; atol=1e-6), unreachable)
+        end
+
+        @testset "deterministic without a random seed effect" begin
+            g = smallgraph(:karate)
+            @test egocentric(g; focus=3) == egocentric(g; focus=3)
+            # the seed only jitters the initial positions, the radii are pinned down
+            # by the graph distances either way
+            @test norm.(egocentric(g; focus=3, seed=1)) ≈ norm.(egocentric(g; focus=3, seed=2))
+        end
+
+        @testset "initialpos and pin" begin
+            g = watts_strogatz(40, 4, 0.1; seed=3)
+            pos = egocentric(g; focus=5, pin=Dict(3 => (7.0, 7.0)))
+            @test pos[3] == Point2(7.0, 7.0)
+
+            # pinned vertices are exempt from the compression
+            pos = egocentric(g; focus=5, maxdist=2, pin=Dict(3 => (7.0, 7.0)))
+            @test pos[3] == Point2(7.0, 7.0)
+
+            # single coordinates can be pinned
+            pos = egocentric(g; focus=5, initialpos=Dict(9 => (2.0, 2.0)), pin=Dict(9 => (true, false)))
+            @test pos[9][1] == 2.0
+            @test pos[9][2] != 2.0
+
+            # pinning the focus is a no-op, it stays at the origin
+            pos = egocentric(g; focus=5, pin=Dict(5 => (3.0, 3.0)))
+            @test pos[5] == zero(Point2)
+        end
+
+        @testset "iterator" begin
+            g = wheel_graph(10)
+            adj_matrix = adjacency_matrix(g)
+            algo = Egocentric(; focus=2)
+            positions = Any[]
+            for p in LayoutIterator(algo, adj_matrix)
+                push!(positions, p)
+            end
+            @test !isempty(positions)
+            @test all(p -> length(p) == nv(g), positions)
+            @test all(p -> p[2] == zero(Point2), positions)
+            # `layout` returns the converged layout the iterator ends on
+            @test last(positions) == algo(adjacency_matrix(g))
+
+            # `iterations` caps each stage: at most initial + stages*iterations + final repeat
+            n = 0
+            for _ in LayoutIterator(Egocentric(; focus=2, tseq=[0.0, 0.5, 1.0], iterations=2,
+                                               reltols=0.0, abstols=0.0, abstolx=0.0),
+                                    adjacency_matrix(g))
+                n += 1
+            end
+            @test 2 <= n <= 2 + 3 * 2
+        end
+
+        @testset "stress decreases along the schedule" begin
+            g = smallgraph(:karate)
+            adj_matrix = adjacency_matrix(g)
+            d = NetworkLayout.pairwise_distance(Matrix(adj_matrix), Float64)
+            w = [i == j ? 0.0 : d[i, j]^-2 for i in 1:nv(g), j in 1:nv(g)]
+            stresses = Float64[]
+            for p in LayoutIterator(Egocentric(; focus=1, tseq=[0.0]), adj_matrix)
+                push!(stresses, NetworkLayout.stress(p, d, w))
+            end
+            @test all(<=(1e-9), diff(stresses))
+            @test last(stresses) < first(stresses)
+        end
+    end
+
     @testset "Testing Spring Algorithm" begin
         println("Spring wheel_graph")
         @testset "Spring construction" begin
