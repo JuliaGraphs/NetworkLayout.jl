@@ -46,9 +46,9 @@ jagmesh_adj = jagmesh()
                 for p in it
                     push!(vec, p)
                 end
-                @test length(vec) == l
+                @test length(vec) == l + 1
                 @test it.algorithm(adj_matrix) == last(vec)
-                @test length(unique!(vec)) == l
+                @test length(unique!(vec)) == l + 1
             end
         end
 
@@ -104,9 +104,9 @@ jagmesh_adj = jagmesh()
                 for p in it
                     push!(vec, p)
                 end
-                @test length(vec) == l
+                @test length(vec) == l + 1
                 @test it.algorithm(adj_matrix) == last(vec)
-                @test length(unique!(vec)) == l
+                @test length(unique!(vec)) == l + 1
             end
         end
 
@@ -213,9 +213,9 @@ jagmesh_adj = jagmesh()
                 for p in it
                     push!(vec, p)
                 end
-                @test length(vec) == l
+                @test length(vec) == l + 1
                 @test it.algorithm(adj_matrix) == last(vec)
-                @test length(unique!(vec)) == l
+                @test length(unique!(vec)) == l + 1
             end
         end
 
@@ -475,7 +475,7 @@ jagmesh_adj = jagmesh()
             positions :: Vector{Point{Dim, Ptype}}
         end
         NetworkLayout.layout(algo::Manual, ::AbstractMatrix) = copy(algo.positions)
-        
+
         g = Graph(2); add_edge!(g, 1, 2)
         pos = Align(Manual([Point2f(1, 2), Point2f(2, 3)]), 0.0)(g)
         @test all(r->abs(r[2])<1e-12, pos)

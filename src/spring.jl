@@ -81,7 +81,7 @@ end
 function Base.iterate(iter::LayoutIterator{<:Spring}, state)
     algo, adj_matrix = iter.algorithm, iter.adj_matrix
     iteration, old_pos, pin, rng = state
-    iteration >= algo.iterations && return nothing
+    iteration > algo.iterations && return nothing
 
     # The optimal distance bewteen vertices
     N = size(adj_matrix, 1)

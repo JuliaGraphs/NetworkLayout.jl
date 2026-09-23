@@ -153,7 +153,7 @@ function Base.iterate(iter::LayoutIterator{<:Stress{Dim,Ptype}}, state) where {D
     algo, δ = iter.algorithm, iter.adj_matrix
     i, oldstress, oldpos, weights, distances, pinvLw, maxiter, pin, stopflag = state
 
-    if i >= maxiter || stopflag
+    if i > maxiter || stopflag
         return nothing
     end
 
