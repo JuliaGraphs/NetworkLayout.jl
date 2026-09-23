@@ -85,7 +85,7 @@ function Base.iterate(iter::LayoutIterator{<:SFDP}, state)
     K, C, tol = algo.K, algo.C, algo.tol
 
     # stop if stopflag (tol reached) or nr of iterations reached
-    if iter >= algo.iterations || stopflag
+    if iter > algo.iterations || stopflag
         return nothing
     end
 
