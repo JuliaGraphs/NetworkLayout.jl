@@ -79,13 +79,9 @@ end
 
 function layout(alg::IterativeLayout, adj_matrix::AbstractMatrix)
     assertsquare(adj_matrix)
-    iter = LayoutIterator(alg, adj_matrix)
-    next = Base.iterate(iter)
-    pos = next[1]
-    while next !== nothing
-        (item, state) = next
-        next = Base.iterate(iter, state)
-        pos = next !== nothing ? item : pos
+    local pos
+    for item in LayoutIterator(alg, adj_matrix)
+        pos = item
     end
     return pos
 end

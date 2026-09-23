@@ -47,6 +47,7 @@ jagmesh_adj = jagmesh()
                     push!(vec, p)
                 end
                 @test length(vec) == l
+                @test it.algorithm(adj_matrix) == last(vec)
                 @test length(unique!(vec)) == l
             end
         end
@@ -104,6 +105,7 @@ jagmesh_adj = jagmesh()
                     push!(vec, p)
                 end
                 @test length(vec) == l
+                @test it.algorithm(adj_matrix) == last(vec)
                 @test length(unique!(vec)) == l
             end
         end
@@ -212,6 +214,7 @@ jagmesh_adj = jagmesh()
                     push!(vec, p)
                 end
                 @test length(vec) == l
+                @test it.algorithm(adj_matrix) == last(vec)
                 @test length(unique!(vec)) == l
             end
         end
