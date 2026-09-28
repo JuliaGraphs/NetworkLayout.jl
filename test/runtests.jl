@@ -326,17 +326,29 @@ jagmesh_adj = jagmesh()
             @test !isempty(positions)
             @test all(p -> length(p) == nv(g), positions)
             @test all(p -> p[2] == zero(Point2), positions)
-            # `layout` returns the converged layout the iterator ends on
             @test last(positions) == algo(adjacency_matrix(g))
 
-            # `iterations` caps each stage: at most initial + stages*iterations + final repeat
+            # a single stage iterates at most `iterations` times on the initial layout
+            for l in [1, 5, 10]
+                vec = Any[]
+                it = LayoutIterator(Egocentric(; focus=2, tseq=[0.0], iterations=l,
+                                               reltols=0.0, abstols=0.0, abstolx=0.0),
+                                    adj_matrix)
+                for p in it
+                    push!(vec, p)
+                end
+                @test length(vec) == l + 1
+                @test it.algorithm(adj_matrix) == last(vec)
+            end
+
+            # `iterations` caps every stage of the schedule separately
             n = 0
             for _ in LayoutIterator(Egocentric(; focus=2, tseq=[0.0, 0.5, 1.0], iterations=2,
                                                reltols=0.0, abstols=0.0, abstolx=0.0),
-                                    adjacency_matrix(g))
+                                    adj_matrix)
                 n += 1
             end
-            @test 2 <= n <= 2 + 3 * 2
+            @test 2 <= n <= 1 + 3 * 2
         end
 
         @testset "stress decreases along the schedule" begin

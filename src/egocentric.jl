@@ -190,7 +190,6 @@ mutable struct EgocentricState{PT,FT}
     stage::Int      # index into tseq
     iter::Int       # majorization steps taken within the current stage
     laststress::FT
-    finished::Bool
 end
 
 function Base.iterate(iter::LayoutIterator{<:Egocentric{Dim,Ptype,FT}}) where {Dim,Ptype,FT}
@@ -223,7 +222,7 @@ function Base.iterate(iter::LayoutIterator{<:Egocentric{Dim,Ptype,FT}}) where {D
     end
 
     state = EgocentricState(positions, D, W, Z, vec(sum(W; dims=2)), vec(sum(Z; dims=2)),
-                            pin, copy(positions), 1, 0, zero(FT), false)
+                            pin, copy(positions), 1, 0, zero(FT))
     state.laststress = _mixedstress(state, first(algo.tseq))
 
     return _egoemit(algo, state), state
@@ -232,14 +231,7 @@ end
 function Base.iterate(iter::LayoutIterator{<:Egocentric}, state)
     algo = iter.algorithm
 
-    state.finished && return nothing
-
-    if state.stage > length(algo.tseq)
-        # emit the final layout a second time: `layout` returns the second to
-        # last item of the iterator
-        state.finished = true
-        return _egoemit(algo, state), state
-    end
+    state.stage > length(algo.tseq) && return nothing
 
     t = algo.tseq[state.stage]
     oldpos = copy(state.positions)
