@@ -250,7 +250,7 @@ f #hide
 ## `pin` Positions in Interative Layouts
 Sometimes it is desired to fix the positions of a few nodes while arranging the rest "naturally" around them.
 The iterative layouts [`Stress`](@ref), [`Spring`](@ref), [`SFDP`](@ref) and
-[`Egocentric`](@ref) allow to pin nodes to certain positions, i.e. those node will
+[`Egocentric`](@ref) allow to pin nodes to certain positions, i.e. those nodes will
 stay fixed during the iteration.
 ```@example layouts
 g = SimpleGraph(vcat(hcat(zeros(4,4), ones(4,4)), hcat(ones(4,4), zeros(4,4))))
