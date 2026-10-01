@@ -19,7 +19,7 @@ Graphs = "86223c79-3864-5bf0-83f7-82e725a168b6"
 NetworkLayoutGraphsExt = "Graphs"
 
 [compat]
-DelimitedFiles = "1"
+DelimitedFiles = "<0.0.1, 1"
 GeometryBasics = "0.5"
 Graphs = "1"
 LinearAlgebra = "1"
